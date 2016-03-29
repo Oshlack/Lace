@@ -10,6 +10,7 @@ import matplotlib.pyplot as plt
 import time
 import numpy as np
 import sys
+from matplotlib.pyplot import cm 
 
 sys.setrecursionlimit(10000) # 10000 is an example, try with different values
 
@@ -46,7 +47,8 @@ for line in fT:
 #First read in BLAT output:
 Header_names = ['match','mismatch','rep.','N\'s','Q gap count','Q gap bases','T gap count','T gap bases','strand','Q name','Q size','Q start','Q end','T name','T size','T start','T end','block count','blocksizes','qStarts','tStarts']
 
-bData = pd.read_table('outall.psl',sep='\t',header = None,names=Header_names,skiprows=5)
+#bData = pd.read_table('outall.psl',sep='\t',header = None,names=Header_names,skiprows=5)
+bData = pd.read_table('ESR1_exakt.psl',sep='\t',header = None,names=Header_names,skiprows=5)
 #print(bData)
 
 ###############
@@ -84,9 +86,9 @@ for i in range(0,len(bData)):
 #qStart = [0,0,0,1,2,2]
 #transcripts = {'T1':'TACG','T2':'CACT','T3':'GGCT'}
 
-#####################
-# Construct the Graph 
-######################
+########################
+# Construct the Graph ##
+########################
 G= nx.DiGraph()
 Node_index=0
 node_dict = {} #A place to find the index of a node
@@ -151,6 +153,7 @@ for i in range(0,len(block_seq)): #Loop through every block sequence
 
 		#If they are not the same node, we need to merge them and add the same edges, redirect the query node to the transcript node
 		if(qnid != tnid): 
+		
 
 			#Redirect incoming edges
 			for n1,n2 in G.in_edges([qnid]): #For each pair of nodes where there is an edge for query nodes 
@@ -197,34 +200,86 @@ for key in node_dict:
 
 
 
+############################################
+# Simplify Graph and/or find blocks ########
+############################################
+
+#Copy graph before simplifying
+C = G
+
+#Define a function to be used recursively to check for each succesor node whether it only has one in or out
+
+def successor_check(G,n,tmerge):
+        ess = [node for node in G.successors(n)]
+
+        #Check for all successors
+        for s in ess:
+                if(len(G.out_edges([s])) == 1 and len(G.in_edges([s])) == 1): #I.e. if only one outgoing edge and one incoming edge it belongs to same block
+                        tmerge.append(s)
+                        successor_check(G,s,tmerge)
+
+        #Will recursively run until there is no successor node to add then we will return the list of nodes to merge
+        return(tmerge)
 
 
-#Manually break a cycle
-#Check for cycles
-#print(len(list(nx.simple_cycles(G))))
-cycles = list(nx.simple_cycles(G)))
-#G.remove_node(666)
+def merge_nodes(lnodes): #Given a list of nodes merge them
+        #Effectively merge all nodes onto first node
 
-########
-#Check we can get transcripts back from graph
-########
+        #Redirect last node in lists edge to first node in list
+        for n1,n2 in G.out_edges(lnodes[-1]):
+                C.add_edge(lnodes[0],n2)
 
-for key in transcripts:
-	path_alternatives = []
+        #Get base sequence for full merge
+        seq = G.node[lnodes[0]]['Base']
+        for i in range(1,len(lnodes)):
+                seq = seq + G.node[lnodes[i]]['Base']
+                C.remove_node(lnodes[i])
+
+        #Add full sequence of merged bases to first node
+        C.node[lnodes[0]]['Base'] = seq
+        return
+
+
+already_merged = []
+
+#Loop through nodes
+for n,d in G.nodes(data=True):
+
+        if(len(G.out_edges([n])) > 1 or len(G.in_edges([n])) > 1 ): continue #If node has more than one edge coming in or out if itself skip
+        if(n in already_merged): continue
+
+        to_merge = [n]
+        tmerge = successor_check(G,n,to_merge)
+
+
+        if(len(tmerge) > 1):
+                merge_nodes(tmerge)
+                for tm in tmerge:
+                        already_merged.append(tm)
+
+
+
+
+###############################################
+#Check we can get transcripts back from graph #
+###############################################
+
+#for key in transcripts:
+#	path_alternatives = []
 	#print("Transcript: ", transcripts[key])
-	pathl = nx.all_simple_paths(G,node_dict[key][0],node_dict[key][-1])
-	for path in pathl:
-		seq= ''
+#	pathl = nx.all_simple_paths(G,node_dict[key][0],node_dict[key][-1])
+#	for path in pathl:
+#		seq= ''
 		#print(path)
-		for b in path:
+#		for b in path:
 			#print(G.node[b]['Base'])
-			seq = seq + G.node[b]['Base']
+#			seq = seq + G.node[b]['Base']
 		#print(seq)
-		path_alternatives.append(seq)
+#		path_alternatives.append(seq)
 
 	#Loop through and check the strings match
-	for path in path_alternatives:
-		if(path == transcripts[key]): print("Found path for: ", key)
+#	for path in path_alternatives:
+#		if(path == transcripts[key]): print("Found path for: ", key)
 		
 
 
@@ -235,6 +290,78 @@ for key in transcripts:
 #for index in base_order:
 #	seq = seq + G.node[index]['Base']
 #print(seq)	
+
+print("For C")
+base_order = nx.topological_sort_recursive(C)
+seq =''
+for index in base_order:
+        seq = seq + C.node[index]['Base']
+print(seq)
+
+
+##################################################
+###### Visualise blocks in SuperTranscript #######
+##################################################
+
+#First pass attempt, make a stacked bar chart of all the nodes in C in order, with size dependent on length of string, iterate through coloirs
+N = nx.number_of_nodes(C)
+node_sizes = []
+#colour=iter(cm.rainbow(np.linspace(0,1,N)))
+colour=iter(cm.viridis(np.linspace(0,1,N)))
+
+left =0
+for n in C.nodes():
+	base_string = list(C.node[n]['Base'])
+	node_sizes.append(len(base_string))
+	c = next(colour)
+	plt.barh(len(transcripts),len(base_string),color=c,left=left)
+	left = left + len(base_string)
+
+#plt.show()
+
+
+#First read in BLAT output:
+Header_names = ['match','mismatch','rep.','N\'s','Q gap count','Q gap bases','T gap count','T gap bases','strand','Q name','Q size','Q start','Q end','T name','T size','T start','T end','block count','blocksizes','qStarts','tStarts']
+vData = pd.read_table('supercomp.psl',sep='\t',header = None,names=Header_names,skiprows=5)
+
+plot_dict = {}
+col_dict = {}
+labs = []
+
+col2=iter(cm.ocean(np.linspace(0,1,len(transcripts))))
+for i,key in enumerate(transcripts):
+	plot_dict[key] = i
+	col_dict[key] = next(col2)
+	lab = "T"+str(i)
+	labs.append(lab)	
+
+for irow in range(0,len(vData)):
+	
+	#Get blocks
+	block_sizes = (vData.iloc[irow,18]).rstrip(',').split(',')
+	tStarts = (vData.iloc[irow,20]).rstrip(',').split(',')
+	qName = vData.iloc[irow,9]
+
+	#Print transcripts blocks
+	for block in range(0,len(block_sizes)):
+		si = int(block_sizes[block])
+		left = int(tStarts[block])
+		plt.barh(plot_dict[qName],si,color=col_dict[qName],left=left,alpha=0.7)
+
+#Fix y-axis
+ind=np.arange(len(transcripts)+1)
+width=0.8
+labs.append('Super')
+plt.yticks(ind + width/2.,labs)
+
+plt.show()
+
+#################################################################
+#################################################################
+
+#labels=dict((n,d['Base']) for n,d in C.nodes(data=True))
+#nx.draw(C,labels=labels)
+#plt.show()
 
 #For Debugging
 #labels=dict((n,d['Base']) for n,d in G.nodes(data=True))
