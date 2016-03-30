@@ -6,6 +6,8 @@ import numpy as np
 import sys
 import os
 from matplotlib.pyplot import cm
+import seaborn as sns
+#plt.style.use('fivethirtyeight')
 
 ##################################################
 ###### Visualise blocks in SuperTranscript #######
@@ -43,7 +45,7 @@ plot_dict = {}
 col_dict = {}
 labs = []
 
-col2=iter(cm.ocean(np.linspace(0,1,len(transcripts))))
+col2=iter(cm.plasma(np.linspace(0,1,len(transcripts))))
 for i,key in enumerate(transcripts):
         plot_dict[key] = i
         col_dict[key] = next(col2)
@@ -68,5 +70,8 @@ ind=np.arange(len(transcripts)+1)
 width=0.8
 labs.append('Super')
 plt.yticks(ind + width/2.,labs)
-
+plt.title('Breakdown of Super Transcript')
+plt.xlabel('Bases')
+plt.ylabel('Transcripts')
+#plt.figure(facecolor='white')
 plt.show()

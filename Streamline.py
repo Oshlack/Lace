@@ -243,19 +243,19 @@ def merge_nodes(lnodes): #Given a list of nodes merge them
 already_merged = []
 
 #Loop through nodes
-for n,d in G.nodes(data=True):
+#for n,d in G.nodes(data=True):
 
-        if(len(G.out_edges([n])) > 1 or len(G.in_edges([n])) > 1 ): continue #If node has more than one edge coming in or out if itself skip
-        if(n in already_merged): continue
+#        if(len(G.out_edges([n])) > 1 or len(G.in_edges([n])) > 1 ): continue #If node has more than one edge coming in or out if itself skip
+#        if(n in already_merged): continue
 
-        to_merge = [n]
-        tmerge = successor_check(G,n,to_merge)
+#        to_merge = [n]
+#        tmerge = successor_check(G,n,to_merge)
 
 
-        if(len(tmerge) > 1):
-                merge_nodes(tmerge)
-                for tm in tmerge:
-                        already_merged.append(tm)
+#        if(len(tmerge) > 1):
+#                merge_nodes(tmerge)
+#                for tm in tmerge:
+#                        already_merged.append(tm)
 
 
 
@@ -285,76 +285,28 @@ for n,d in G.nodes(data=True):
 
 
 #Order base in graph
-#base_order = nx.topological_sort_recursive(G)
-#seq =''
-#for index in base_order:
-#	seq = seq + G.node[index]['Base']
-#print(seq)	
-
-print("For C")
-base_order = nx.topological_sort_recursive(C)
+base_order = nx.topological_sort_recursive(G)
 seq =''
 for index in base_order:
-        seq = seq + C.node[index]['Base']
-print(seq)
+	seq = seq + G.node[index]['Base']
+#print(seq)	
+
+#print("For C")
+#base_order = nx.topological_sort_recursive(C)
+#seq =''
+#for index in base_order:
+#        seq = seq + C.node[index]['Base']
+#print(seq)
+
+#Save sequence to file
+superf = open('Super.fasta','w')
+superf.write('>Super\n')
+superf.write(seq)
+superf.close()
 
 
-##################################################
-###### Visualise blocks in SuperTranscript #######
-##################################################
-
-#First pass attempt, make a stacked bar chart of all the nodes in C in order, with size dependent on length of string, iterate through coloirs
-N = nx.number_of_nodes(C)
-node_sizes = []
-#colour=iter(cm.rainbow(np.linspace(0,1,N)))
-colour=iter(cm.viridis(np.linspace(0,1,N)))
-
-left =0
-for n in C.nodes():
-	base_string = list(C.node[n]['Base'])
-	node_sizes.append(len(base_string))
-	c = next(colour)
-	plt.barh(len(transcripts),len(base_string),color=c,left=left)
-	left = left + len(base_string)
-
-#plt.show()
-
-
-#First read in BLAT output:
-Header_names = ['match','mismatch','rep.','N\'s','Q gap count','Q gap bases','T gap count','T gap bases','strand','Q name','Q size','Q start','Q end','T name','T size','T start','T end','block count','blocksizes','qStarts','tStarts']
-vData = pd.read_table('supercomp.psl',sep='\t',header = None,names=Header_names,skiprows=5)
-
-plot_dict = {}
-col_dict = {}
-labs = []
-
-col2=iter(cm.ocean(np.linspace(0,1,len(transcripts))))
-for i,key in enumerate(transcripts):
-	plot_dict[key] = i
-	col_dict[key] = next(col2)
-	lab = "T"+str(i)
-	labs.append(lab)	
-
-for irow in range(0,len(vData)):
-	
-	#Get blocks
-	block_sizes = (vData.iloc[irow,18]).rstrip(',').split(',')
-	tStarts = (vData.iloc[irow,20]).rstrip(',').split(',')
-	qName = vData.iloc[irow,9]
-
-	#Print transcripts blocks
-	for block in range(0,len(block_sizes)):
-		si = int(block_sizes[block])
-		left = int(tStarts[block])
-		plt.barh(plot_dict[qName],si,color=col_dict[qName],left=left,alpha=0.7)
-
-#Fix y-axis
-ind=np.arange(len(transcripts)+1)
-width=0.8
-labs.append('Super')
-plt.yticks(ind + width/2.,labs)
-
-plt.show()
+#Save graph to file
+#nx.write_gpickle(C,"Simples.pkl")
 
 #################################################################
 #################################################################
