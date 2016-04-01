@@ -11,7 +11,7 @@ import time
 import numpy as np
 import sys
 from matplotlib.pyplot import cm 
-
+import os
 sys.setrecursionlimit(10000) # 10000 is an example, try with different values
 
 
@@ -40,16 +40,16 @@ for line in fT:
 ###################################################
 
 #This may well be changed/ skipped/ parallelised
-#BLAT_command = "blat ESR1_transcripts_for_Michael.fasta ESR1_transcripts_for_Michael.fasta outall.psl"
-#os.system(BLAT_command)
+if(os.path.isfile('outall.psl') == False):
+	BLAT_command = "./blat ESR1_transcripts_for_Michael.fasta ESR1_transcripts_for_Michael.fasta -maxGap=0 -minIdentity=100 -maxIntron=0 outall.psl"
+	os.system(BLAT_command)
 
 
 #First read in BLAT output:
 Header_names = ['match','mismatch','rep.','N\'s','Q gap count','Q gap bases','T gap count','T gap bases','strand','Q name','Q size','Q start','Q end','T name','T size','T start','T end','block count','blocksizes','qStarts','tStarts']
 
-#bData = pd.read_table('outall.psl',sep='\t',header = None,names=Header_names,skiprows=5)
-bData = pd.read_table('ESR1_exakt.psl',sep='\t',header = None,names=Header_names,skiprows=5)
-#print(bData)
+bData = pd.read_table('outall.psl',sep='\t',header = None,names=Header_names,skiprows=5)
+#bData = pd.read_table('ESR1_exakt.psl',sep='\t',header = None,names=Header_names,skiprows=5)
 
 ###############
 #Now extract the sequences from the blocks using the coordinates from BLAT
@@ -62,6 +62,9 @@ tStart = [] #Start co-ordinate of the block in the transcript
 qStart = [] #Start co-ordinate of the block in query
 
 for i in range(0,len(bData)):
+	#Check explicitly that there are no gaps
+	if( bData.iloc[i,4] > 0 or bData.iloc[i,6] > 0):
+		continue
 
 	seq=list(transcripts[bData.iloc[i,9]]) #Get sequence from query name
 	block_sizes = (bData.iloc[i,18]).rstrip(',').split(',')
@@ -86,6 +89,16 @@ for i in range(0,len(bData)):
 #qStart = [0,0,0,1,2,2]
 #transcripts = {'T1':'TACG','T2':'CACT','T3':'GGCT'}
 
+#Example with a loop
+block_seq=[['A','C','T'],['A','C','T'],['A','C','T'],['A','C','T']]
+tName = ['T2','T2','T1','T1']
+qName = ['T1','T1','T2','T2']
+tStart = [0,0,0,4]
+qStart = [0,4,0,0]
+transcripts = {'T1':'ACTGACTA','T2':'ACTGCGCA'}
+ 
+
+
 ########################
 # Construct the Graph ##
 ########################
@@ -93,8 +106,8 @@ G= nx.DiGraph()
 Node_index=0
 node_dict = {} #A place to find the index of a node
 for key in transcripts:
-	node_dict[key] = np.full(len(list(transcripts[key])),-1,dtype=np.int64)
-	
+	#node_dict[key] = np.full(len(list(transcripts[key])),-1,dtype=np.int64)
+	node_dict[key] = [-1] * len(list(transcripts[key]))
 pn_id = 0 #Previous Node Id
 
 #############################
@@ -128,12 +141,6 @@ for i in range(0,len(block_seq)): #Loop through every block sequence
 
 	for j in range(0,len(block_seq[i])): #Loop through every base in a given block 
 
-		#print(nx.nodes(G))
-	
-		#labels=dict((n,d['Base']) for n,d in G.nodes(data=True))
-		#nx.draw(G,labels=labels)
-		#plt.show()
-
 		#Co-ordinate for base in transcript and query sequences
 		tpos = j + tStart[i]
 		qpos = j + qStart[i]
@@ -145,15 +152,55 @@ for i in range(0,len(block_seq)): #Loop through every block sequence
 
 		#Check if node already there either with the transcript id or query id
 
-		#print("### MERGE START ###")
-		#print("Started with:",qnid)
-		#print("Merging Node: ", G.node[qnid])
-		#print("To: ", G.node[tnid])
-		#print("Which is:",tnid)	
 
-		#If they are not the same node, we need to merge them and add the same edges, redirect the query node to the transcript node
-		if(qnid != tnid): 
-		
+		if(qnid != tnid): #query and transcript node not the same
+			
+	
+			#Consideration 1 
+			#Check if transcript node id already used for another base on the query string
+			try:
+				ll = node_dict[qName[i]].index(tnid)
+
+			except ValueError:
+    				ll = -1
+
+			#Check whether the transcript node you are merging to, isnt already in the query string
+			if(ll >= 0 and ll != qpos): continue		
+
+			#If the node you are intending to merge is already merged to somewhere else on the transcript string, dont merge as can cause wirls
+			if(qnid in node_dict[tName[i]]): continue 
+
+			#Consideration 2
+			#Check if two transcripts are disjoint (i.e. don't share any nodes) - if they are it is not problem to merge
+			shared_list = list(set(node_dict[tName[i]]).intersection(node_dict[qName[i]]))
+
+			#If they are not, we need to check if we are making a loop
+			if(len(shared_list) > 0 ):
+
+			#if(not set(node_dict[tName[i]]).isdijoint(node_dict[qName[i]]):
+				#Dig deeper, the share bases, but this is only a problem if we intend to merge to a node which is sequentially after
+
+				#Check whether transcript string has another base merged with one of the query string
+				#If it does, check that the base is not sequentially after in query transcript to the node we are considering merging too
+				#shared_flag = 0
+				#for j in range(0,len(node_dict[tName[i]])):
+				#	if(node_dict[tName[i]][j] in node_dict[qName[i]]):
+				#	Find last entry in query transcript which has a shared base with the transcript
+				#	shared_flag = len(node_dict[qName[i]]) - node_dict[qName[i]][::-1].index(node_dict[tName[i]][j]) #Transcript and Query share a node, find last occurence by using index and reversing list
+	
+			
+				#Now check that the base is not sequential
+				if(qpos < node_dict[qName[i]].index(shared_list[-1])): #If the base intended to merge is sequentially before, don't merge as you can make a whirl
+					continue
+
+			
+			
+
+			#print("### MERGE START ###")
+			#print("Started with:",qnid)
+			#print("Merging Node: ", G.node[qnid])
+			#print("To: ", G.node[tnid])
+			#print("Which is:",tnid)
 
 			#Redirect incoming edges
 			for n1,n2 in G.in_edges([qnid]): #For each pair of nodes where there is an edge for query nodes 
@@ -189,6 +236,19 @@ for i in range(0,len(block_seq)): #Loop through every block sequence
 			#Change Dictionary Call for query node
 			node_dict[qName[i]][qpos] = tnid
 
+################################
+# Check whirl potential ########
+################################
+whirl_flag = False
+#for key in transcripts:
+#        if(len(node_dict[key]) != len(set(node_dict[key]))):
+#                whirl_flag = True
+
+if(whirl_flag):
+        print("Whirl detected....exiting")
+        sys.exit()
+
+
 
 
 ###################################################
@@ -199,13 +259,9 @@ for key in node_dict:
                 G.add_edge(node_dict[key][j],node_dict[key][j+1])
 
 
-
 ############################################
 # Simplify Graph and/or find blocks ########
 ############################################
-
-#Copy graph before simplifying
-C = G
 
 #Define a function to be used recursively to check for each succesor node whether it only has one in or out
 
@@ -222,27 +278,32 @@ def successor_check(G,n,tmerge):
         return(tmerge)
 
 
-def merge_nodes(lnodes): #Given a list of nodes merge them
+def merge_nodes(lnodes,graph): #Given a list of nodes merge them
+	print(lnodes)
         #Effectively merge all nodes onto first node
 
         #Redirect last node in lists edge to first node in list
-        for n1,n2 in G.out_edges(lnodes[-1]):
-                C.add_edge(lnodes[0],n2)
+	for n1,n2 in graph.out_edges(lnodes[-1]):
+		graph.add_edge(lnodes[0],n2)
 
         #Get base sequence for full merge
-        seq = G.node[lnodes[0]]['Base']
-        for i in range(1,len(lnodes)):
-                seq = seq + G.node[lnodes[i]]['Base']
-                C.remove_node(lnodes[i])
+	seq = graph.node[lnodes[0]]['Base']
+	for i in range(1,len(lnodes)):
+		seq = seq + graph.node[lnodes[i]]['Base']
+		graph.remove_node(lnodes[i])
 
-        #Add full sequence of merged bases to first node
-        C.node[lnodes[0]]['Base'] = seq
-        return
+	#Add full sequence of merged bases to first node
+	graph.node[lnodes[0]]['Base'] = seq
+	return(lnodes[0]) #Return Node id of merged node
 
 
-already_merged = []
+#already_merged = []
 
 #Loop through nodes
+
+#Copy graph before simplifying
+C = G.to_directed()
+
 #for n,d in G.nodes(data=True):
 
 #        if(len(G.out_edges([n])) > 1 or len(G.in_edges([n])) > 1 ): continue #If node has more than one edge coming in or out if itself skip
@@ -253,43 +314,111 @@ already_merged = []
 
 
 #        if(len(tmerge) > 1):
-#                merge_nodes(tmerge)
+#                l = merge_nodes(tmerge)
 #                for tm in tmerge:
 #                        already_merged.append(tm)
 
 
 
+####################################################
+####### Whirl Elimination     ######################
+####################################################
+
+whirl_removal = False
+if(whirl_removal):
+	#Find all whirls
+	print("Finding Whirls...")
+	whirls = list(nx.simple_cycles(C))
+	print("DONE")
+
+	#UNSOLVED: What if multiple interacting whirls exist?
+
+	#Loop through each whirl
+	for whirl in whirls:
+		M_node = None
+		Multi = 0
+
+		#Find Highest multiplicity node in loop to use for breaking point 
+		for node in whirl:
+			temp = len(C.out_edges([node])) + len(C.out_edges([node]))
+			if(temp > Multi):
+				Multi = temp
+				M_node = node
+
+		
+		print(whirl)
+		iM = whirl.index(M_node)
+		print(iM)
+
+		#Merge all nodes, after highest multiplicity node together
+		if(len(whirl[(iM+1):]) == 1): wnode = M_node
+		elif(len(whirl[(iM+1):]) == 0): 
+			wnode = M_node
+			ppnode = merge_nodes(whirl[0:iM],C)
+
+		else:
+			wnode = merge_nodes(whirl[(iM+1):],C)
+
+			#Merge all nodes in whirl up to (and including)
+			ppnode = merge_nodes(whirl[0:iM+1],C)
+
+		#Make a copy of ppnode
+		C.add_node(Node_index)
+		C.node[Node_index]['Base'] = C.node[ppnode]['Base']
+
+
+		### Create edges in new node and remove some from old node
+		#Copy out edges to new node and remove from old
+		for n1,n2 in C.out_edges(ppnode):
+			if(n2 not in whirl):
+				C.add_edge(Node_index,n2)
+				C.remove_edge(ppnode,n2)
+		
+
+		#Get In edge to new node and remove from old
+		for n1,n2 in C.in_edges(ppnode):
+			if(n1 in whirl): 
+				C.add_edge(n1,Node_index)
+				C.remove_edge(n1,ppnode)
+
+		#Now add edge from break to whirl
+		C.add_edge(ppnode,node)
+		C.add_edge(wnode,Node_index)
+
+		
+			
+		Node_index= Node_index+1
 
 ###############################################
 #Check we can get transcripts back from graph #
 ###############################################
 
-#for key in transcripts:
-#	path_alternatives = []
+for key in transcripts:
+	path_alternatives = []
 	#print("Transcript: ", transcripts[key])
-#	pathl = nx.all_simple_paths(G,node_dict[key][0],node_dict[key][-1])
-#	for path in pathl:
-#		seq= ''
+	pathl = nx.all_simple_paths(G,node_dict[key][0],node_dict[key][-1])
+	for path in pathl:
+		seq= ''
 		#print(path)
-#		for b in path:
+		for b in path:
 			#print(G.node[b]['Base'])
-#			seq = seq + G.node[b]['Base']
+			seq = seq + G.node[b]['Base']
 		#print(seq)
-#		path_alternatives.append(seq)
+		path_alternatives.append(seq)
 
 	#Loop through and check the strings match
-#	for path in path_alternatives:
-#		if(path == transcripts[key]): print("Found path for: ", key)
+	for path in path_alternatives:
+		if(path == transcripts[key]): print("Found path for: ", key)
 		
 
 
-
 #Order base in graph
-base_order = nx.topological_sort_recursive(G)
+#base_order = nx.topological_sort(G)
+base_order = nx.topological_sort_recursive(G) #WORKED BEFORE
 seq =''
 for index in base_order:
 	seq = seq + G.node[index]['Base']
-#print(seq)	
+print(seq)	
 
 #print("For C")
 #base_order = nx.topological_sort_recursive(C)
@@ -307,6 +436,32 @@ superf.close()
 
 #Save graph to file
 #nx.write_gpickle(C,"Simples.pkl")
+
+
+#Find the longest path in a DAG
+def longest_path(G):
+    dist = {} # stores [node, distance] pair
+    for node in nx.topological_sort(G):
+        # pairs of dist,node for all incoming edges
+        pairs = [(dist[v][0]+1,v) for v in G.pred[node]] 
+        if pairs:
+            dist[node] = max(pairs)
+        else:
+            dist[node] = (0, node)
+    node,(length,_)  = max(dist.items(), key=lambda x:x[1])
+    path = []
+    while length > 0:
+        path.append(node)
+        length,node = dist[node]
+    return list(reversed(path))
+
+print("Longest Path ")
+lp = longest_path(G)
+seq =''
+for index in lp:
+        seq = seq + G.node[index]['Base']
+print(seq)
+
 
 #################################################################
 #################################################################
