@@ -15,6 +15,17 @@ import os
 sys.setrecursionlimit(10000) # 10000 is an example, try with different values
 
 
+#A little function to loop recursively through linked nodes in Graph in order to replace the node stored due to merging/removal
+#def Recursive_Replace(G,node_dict,transcripts,T,Q,tnid,id):
+#	for key in transcripts:
+#		if(G.node[id][key] is not None):
+#                                        #Update Dictionary
+#                                        node_dict[key][G.node[id][key]] = tnid
+#					Recursive_Replace(G,node_dict,transcripts,T,Q,tnid,node_dict[key][G.node[id][key]])	
+	
+
+
+
 #Start Clock for timing
 start_time = time.time()
 
@@ -23,6 +34,7 @@ start_time = time.time()
 #####################
 
 fT = open('ESR1_transcripts_for_Michael.fasta','r')
+#fT = open('s.cerevisiae/Cluster-3231.0.fasta','r')
 transcripts = {}
 tName = ''
 
@@ -42,6 +54,7 @@ for line in fT:
 #This may well be changed/ skipped/ parallelised
 if(os.path.isfile('outall.psl') == False):
 	BLAT_command = "./blat ESR1_transcripts_for_Michael.fasta ESR1_transcripts_for_Michael.fasta -maxGap=0 -minIdentity=100 -maxIntron=0 outall.psl"
+	#BLAT_command = "./blat s.cerevisiae/Cluster-3231.0.fasta s.cerevisiae/Cluster-3231.0.fasta  -maxGap=0 -minIdentity=100 -maxIntron=0 outall.psl"
 	os.system(BLAT_command)
 
 
@@ -61,10 +74,20 @@ qName = []
 tStart = [] #Start co-ordinate of the block in the transcript
 qStart = [] #Start co-ordinate of the block in query
 
+pair_list = []
+
 for i in range(0,len(bData)):
 	#Check explicitly that there are no gaps
 	if( bData.iloc[i,4] > 0 or bData.iloc[i,6] > 0):
 		continue
+	
+	#Don't allign the transcripts against each other twice...
+	#I.e. BLAT does T1 vs T2 but also T2 vs T1 (which should be the same give or take)
+	
+	#TName + QName
+	paired = bData.iloc[i,13] + bData.iloc[i,9]
+	if(paired in pair_list): continue
+	else: pair_list.append(bData.iloc[i,9]+bData.iloc[i,13]) 
 
 	seq=list(transcripts[bData.iloc[i,9]]) #Get sequence from query name
 	block_sizes = (bData.iloc[i,18]).rstrip(',').split(',')
@@ -90,12 +113,12 @@ for i in range(0,len(bData)):
 #transcripts = {'T1':'TACG','T2':'CACT','T3':'GGCT'}
 
 #Example with a loop
-block_seq=[['A','C','T'],['A','C','T'],['A','C','T'],['A','C','T']]
-tName = ['T2','T2','T1','T1']
-qName = ['T1','T1','T2','T2']
-tStart = [0,0,0,4]
-qStart = [0,4,0,0]
-transcripts = {'T1':'ACTGACTA','T2':'ACTGCGCA'}
+#block_seq=[['A','C','T'],['A','C','T'],['A','C','T'],['A','C','T']]
+#tName = ['T2','T2','T1','T1']
+#qName = ['T1','T1','T2','T2']
+#tStart = [0,0,0,4]
+#qStart = [0,4,0,0]
+#transcripts = {'T1':'ACTGACTA','T2':'ACTGCGCA'}
  
 
 
@@ -156,7 +179,7 @@ for i in range(0,len(block_seq)): #Loop through every block sequence
 		if(qnid != tnid): #query and transcript node not the same
 			
 	
-			#Consideration 1 
+			#Consideration 1 - Whirls from repeated sections
 			#Check if transcript node id already used for another base on the query string
 			try:
 				ll = node_dict[qName[i]].index(tnid)
@@ -170,28 +193,14 @@ for i in range(0,len(block_seq)): #Loop through every block sequence
 			#If the node you are intending to merge is already merged to somewhere else on the transcript string, dont merge as can cause wirls
 			if(qnid in node_dict[tName[i]]): continue 
 
-			#Consideration 2
+			#Consideration 2 - Whirls from "inverted" parts
 			#Check if two transcripts are disjoint (i.e. don't share any nodes) - if they are it is not problem to merge
-			shared_list = list(set(node_dict[tName[i]]).intersection(node_dict[qName[i]]))
-
+			#shared_list = list(set(node_dict[tName[i]]).intersection(node_dict[qName[i]]))
 			#If they are not, we need to check if we are making a loop
-			if(len(shared_list) > 0 ):
-
-			#if(not set(node_dict[tName[i]]).isdijoint(node_dict[qName[i]]):
-				#Dig deeper, the share bases, but this is only a problem if we intend to merge to a node which is sequentially after
-
-				#Check whether transcript string has another base merged with one of the query string
-				#If it does, check that the base is not sequentially after in query transcript to the node we are considering merging too
-				#shared_flag = 0
-				#for j in range(0,len(node_dict[tName[i]])):
-				#	if(node_dict[tName[i]][j] in node_dict[qName[i]]):
-				#	Find last entry in query transcript which has a shared base with the transcript
-				#	shared_flag = len(node_dict[qName[i]]) - node_dict[qName[i]][::-1].index(node_dict[tName[i]][j]) #Transcript and Query share a node, find last occurence by using index and reversing list
-	
-			
-				#Now check that the base is not sequential
-				if(qpos < node_dict[qName[i]].index(shared_list[-1])): #If the base intended to merge is sequentially before, don't merge as you can make a whirl
-					continue
+			#if(len(shared_list) > 0 ):
+			#	#Now check that the base is not sequential
+			#	if(qpos < node_dict[qName[i]].index(shared_list[-1])): #If the base intended to merge is sequentially before, don't merge as you can make a whirl
+			#		continue
 
 			
 			
@@ -221,6 +230,7 @@ for i in range(0,len(block_seq)): #Loop through every block sequence
 				#Only override transcript attributes if not empty
 				if(G.node[qnid][key] is not None):
 					if(key != tName[i]): G.node[tnid][key] = G.node[qnid][key] #Don't replace transcript position
+
 					#Update Dictionary
 					node_dict[key][G.node[qnid][key]] = tnid
 				
@@ -229,12 +239,18 @@ for i in range(0,len(block_seq)): #Loop through every block sequence
 			#################
 			# Remove old node
 			#################
-
 			#Remove query node since we have no merged it to the transcript node
 			G.remove_node(qnid)
 
 			#Change Dictionary Call for query node
 			node_dict[qName[i]][qpos] = tnid
+
+			#Recursive check that no element in node dict contains the old node which is removed
+			for key in node_dict:
+				if(key ==  qName[i] or key == tName[i]): continue
+				if(qnid in node_dict[key]):
+					node_dict[key][node_dict[key].index(qnid)] = tnid
+
 
 ################################
 # Check whirl potential ########
@@ -393,39 +409,38 @@ if(whirl_removal):
 #Check we can get transcripts back from graph #
 ###############################################
 
-for key in transcripts:
-	path_alternatives = []
+#for key in transcripts:
+#	path_alternatives = []
 	#print("Transcript: ", transcripts[key])
-	pathl = nx.all_simple_paths(G,node_dict[key][0],node_dict[key][-1])
-	for path in pathl:
-		seq= ''
-		#print(path)
-		for b in path:
-			#print(G.node[b]['Base'])
-			seq = seq + G.node[b]['Base']
-		#print(seq)
-		path_alternatives.append(seq)
+#	pathl = nx.all_simple_paths(G,node_dict[key][0],node_dict[key][-1])
+#	for path in pathl:
+#		seq= ''
+#		#print(path)
+#		for b in path:
+#			#print(G.node[b]['Base'])
+#			seq = seq + G.node[b]['Base']
+#		#print(seq)
+#		path_alternatives.append(seq)
 
-	#Loop through and check the strings match
-	for path in path_alternatives:
-		if(path == transcripts[key]): print("Found path for: ", key)
+#	#Loop through and check the strings match
+#	for path in path_alternatives:
+#		if(path == transcripts[key]): print("Found path for: ", key)
 		
 
 
 #Order base in graph
 #base_order = nx.topological_sort(G)
-base_order = nx.topological_sort_recursive(G) #WORKED BEFORE
+#Will crash if there is a cycle, therefore do a try
+try:
+	base_order = nx.topological_sort(G)
+except nx.NetworkXUnfeasible:
+	print("CYCLESSSSSS!!!!!!")
+	sys.exit()
+
 seq =''
 for index in base_order:
 	seq = seq + G.node[index]['Base']
 print(seq)	
-
-#print("For C")
-#base_order = nx.topological_sort_recursive(C)
-#seq =''
-#for index in base_order:
-#        seq = seq + C.node[index]['Base']
-#print(seq)
 
 #Save sequence to file
 superf = open('Super.fasta','w')
@@ -455,12 +470,12 @@ def longest_path(G):
         length,node = dist[node]
     return list(reversed(path))
 
-print("Longest Path ")
-lp = longest_path(G)
-seq =''
-for index in lp:
-        seq = seq + G.node[index]['Base']
-print(seq)
+#print("Longest Path ")
+#lp = longest_path(G)
+#seq =''
+#for index in lp:
+#        seq = seq + G.node[index]['Base']
+#print(seq)
 
 
 #################################################################

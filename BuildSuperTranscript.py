@@ -50,8 +50,6 @@ def SuperTran(fname):
 		return(seq) 
 
 	if(verbose): print('#########' + fname + '#########')
-	print('#########' + fname + '#########')
-
 
 	###################################################
 	# Loop pairwise through transcripts and BLAT allign
@@ -215,6 +213,13 @@ def SuperTran(fname):
 				#Change Dictionary Call for query node
 				node_dict[qName[i]][qpos] = tnid
 
+				
+				#Recursive check that no element in node dict contains the old node which is removed, if it does replace it...perhaps think of another way...
+				for key in node_dict:
+					if(key ==  qName[i] or key == tName[i]): continue
+					if(qnid in node_dict[key]):
+						node_dict[key][node_dict[key].index(qnid)] = tnid
+
 
 	if(verbose): print("Adding in node edges based on transcripts")
 
@@ -252,8 +257,8 @@ def SuperTran(fname):
 	#superf.close()
 
 	if(verbose): print("---- %s seconds ----" %(time.time()-start_time))	
-	print(seq)	
-	
+	print("---- %s seconds ----" %(time.time()-start_time))	
+
 	return(seq)
 
 if __name__ == '__main__':
