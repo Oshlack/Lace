@@ -13,14 +13,17 @@ import sys
 import os
 from matplotlib.pyplot import cm 
 
-sys.setrecursionlimit(10000) # 10000 is an example, try with different values
-
+#sys.setrecursionlimit(1000000) # 10000 is an example, try with different values
+sys.setrecursionlimit(10000)
 
 def SuperTran(fname):
+	
+	verbose = False
 
 	#Start Clock for timing
 	start_time = time.time()
 
+	if(verbose): print("Reading in transcripts and pairwise BLAT if necesssay")
 	#####################
 	#Read in transcripts
 	#####################
@@ -40,21 +43,31 @@ def SuperTran(fname):
 		else:
 			transcripts[tName] = transcripts[tName] + line.split('\n')[0].split('\r')[0]
 
+	#If there is only one transcript in this file, then simply that transcript is the super transcript
+	if(len(transcripts) == 1):
+		if(verbose): print("One\n") 
+		seq = next(iter(transcripts.values())) #Python 3 specific codee...
+		return(seq) 
+
+	if(verbose): print('#########' + fname + '#########')
+	print('#########' + fname + '#########')
+
 
 	###################################################
 	# Loop pairwise through transcripts and BLAT allign
 	###################################################
 
 	#This may well be changed/ skipped/ parallelised
-	if(os.path.isfile('outall.psl') == False):
-		BLAT_command = "./blat %s %s -maxGap=0 -minIdentity=100 -maxIntron=0 outall.psl" %(fname,fname) #This gets almost exact matches
+	if(os.path.isfile(fname.split('.fasta')[0] + '.psl') == False):
+		BLAT_command = "./blat %s %s -maxGap=0 -minIdentity=100 -maxIntron=0 %s.psl" %(fname,fname,fname.split('.fasta')[0]) #This gets almost exact matches
 		os.system(BLAT_command)
 
 
 	#First read in BLAT output:
 	Header_names = ['match','mismatch','rep.','N\'s','Q gap count','Q gap bases','T gap count','T gap bases','strand','Q name','Q size','Q start','Q end','T name','T size','T start','T end','block count','blocksizes','qStarts','tStarts']
 
-	bData = pd.read_table('ESR1_exakt.psl',sep='\t',header = None,names=Header_names,skiprows=5)
+	#bData = pd.read_table('ESR1_exakt.psl',sep='\t',header = None,names=Header_names,skiprows=5)
+	bData = pd.read_table(fname.split('.fasta')[0] + '.psl',sep='\t',header = None,names=Header_names,skiprows=5)
 
 	###############
 	#Now extract the sequences from the blocks using the coordinates from BLAT
@@ -65,9 +78,23 @@ def SuperTran(fname):
 	qName = []
 	tStart = [] #Start co-ordinate of the block in the transcript
 	qStart = [] #Start co-ordinate of the block in query
+	pair_list = [] # Which pairs of transcripts have been blatted
 
 	for i in range(0,len(bData)):
 
+		#Check explicitly that there are no gaps
+		if( bData.iloc[i,4] > 0 or bData.iloc[i,6] > 0):
+			continue
+	
+		#Don't allign the transcripts against each other twice...
+        	#I.e. BLAT does T1 vs T2 but also T2 vs T1 (which should be the same give or take)
+
+        	#TName + QName
+		paired = bData.iloc[i,13] + bData.iloc[i,9]
+		if(paired in pair_list): continue
+		else: pair_list.append(bData.iloc[i,9]+bData.iloc[i,13])
+		
+		
 		seq=list(transcripts[bData.iloc[i,9]]) #Get sequence from query name
 		block_sizes = (bData.iloc[i,18]).rstrip(',').split(',')
 		qStarts = (bData.iloc[i,19]).rstrip(',').split(',')
@@ -80,6 +107,8 @@ def SuperTran(fname):
 			qStart.append(int(qStarts[j]))
 			qName.append(bData.iloc[i,9])
 
+	if(verbose): print("Constructing and merging nodes in graphs based on Blocks and Transcripts")
+
 
 	########################
 	# Construct the Graph ##
@@ -88,8 +117,7 @@ def SuperTran(fname):
 	Node_index=0
 	node_dict = {} #A place to find the index of a node
 	for key in transcripts:
-		node_dict[key] = np.full(len(list(transcripts[key])),-1,dtype=np.int64)
-		
+		node_dict[key] = [-1] * len(list(transcripts[key]))
 	pn_id = 0 #Previous Node Id
 
 	#############################
@@ -137,7 +165,21 @@ def SuperTran(fname):
 
 			#If they are not the same node, we need to merge them and add the same edges, redirect the query node to the transcript node
 			if(qnid != tnid): 
-			
+
+				#Consideration - Whirls from repeated sections
+				#Check if transcript node id already used for another base on the query string
+				try:
+					ll = node_dict[qName[i]].index(tnid)
+
+				except ValueError:
+					ll = -1
+
+				#Check whether the transcript node you are merging to, isnt already in the query string
+				if(ll >= 0 and ll != qpos): continue
+
+				#If the node you are intending to merge is already merged to somewhere else on the transcript string, dont merge as can cause wirls
+				if(qnid in node_dict[tName[i]]): continue			
+
 
 				#Redirect incoming edges
 				for n1,n2 in G.in_edges([qnid]): #For each pair of nodes where there is an edge for query nodes 
@@ -174,6 +216,7 @@ def SuperTran(fname):
 				node_dict[qName[i]][qpos] = tnid
 
 
+	if(verbose): print("Adding in node edges based on transcripts")
 
 	###################################################
 	## Add Edges between adjacent transcript nodes ####
@@ -183,21 +226,32 @@ def SuperTran(fname):
 			G.add_edge(node_dict[key][j],node_dict[key][j+1])
 
 
+	if(verbose): print("Topoligically ordering graph")
 
-
+	
 	#Order base in graph
-	base_order = nx.topological_sort_recursive(G)
+	#base_order = nx.topological_sort_recursive(G)
+
+	#Will crash if there is a cycle, therefore do a try
+	try:
+		base_order = nx.topological_sort(G)
+
+	except nx.NetworkXUnfeasible:
+		print("CYCLESSSSSS!!!!!!")
+		return("CYCLE")
+	
+		
 	seq =''
 	for index in base_order:
 		seq = seq + G.node[index]['Base']
 
 	#Save sequence to file
-	superf = open('Super.fasta','w')
-	superf.write('>Super\n')
-	superf.write(seq)
-	superf.close()
+	#superf = open('Super.fasta','w')
+	#superf.write('>Super\n')
+	#superf.write(seq)
+	#superf.close()
 
-	print("---- %s seconds ----" %(time.time()-start_time))	
+	if(verbose): print("---- %s seconds ----" %(time.time()-start_time))	
 	print(seq)	
 	
 	return(seq)
