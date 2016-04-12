@@ -4,6 +4,7 @@
 # 3) Sort blocks from the graph into topological order
 # 4) Read sequence for each block to give the SuperTranscript!
 
+import pickle
 import pandas as pd
 import networkx as nx
 import matplotlib.pyplot as plt
@@ -105,12 +106,14 @@ for i in range(0,len(bData)):
 #################################
 # Make test strings for debugging
 #################################
-#block_seq = [ ['T','A','C','G'], ['C','A','C','T'], ['G','G','C','T'], ['A','C'], ['C','T'], ['C']]
-#tName = ['T1','T2','T3','T2','T3','T3']
-#qName = ['T1','T2','T3','T1','T2','T1']
-#tStart = [0,0,0,1,2,2]
-#qStart = [0,0,0,1,2,2]
-#transcripts = {'T1':'TACG','T2':'CACT','T3':'GGCT'}
+
+#Motherload
+#block_seq = [['A','C','T'],['G','A'],['A','C','T'],['G','A'],['A','C','T'],['A','C','T'],['C','G','G'],['C','G','G'],['A','C','T'],['G','A'],['C','G','G'],['A','C','T'],['C','G','G'],['C','G','G']]
+#tName = ['T1','T1','T1','T1','T1','T2','T2','T2','T2','T2','T2','T3','T3','T3']
+#qName = ['T2','T2','T3','T3','T4','T4','T4','T4','T3','T3','T3','T4','T4','T4']
+#tStart = [0,4,0,4,0,0,4,4,0,8,4,0,7,7]
+#qStart = [0,8,0,4,0,0,4,8,0,4,7,0,4,8]
+#transcripts = {'T1':'ACTGGAC','T2':'ACTGCGGAGA','T3':'ACTCGAGCGG','T4':'ACTTCGGACGG'}
 
 #Example with a loop
 #block_seq=[['A','C','T'],['A','C','T'],['A','C','T'],['A','C','T']]
@@ -178,6 +181,7 @@ for i in range(0,len(block_seq)): #Loop through every block sequence
 		tpos = j + tStart[i]
 		qpos = j + qStart[i]
 	
+
 		#Node index for q base and t base
 		qnid = node_dict[qName[i]][qpos] #Node index in graph for base in query
 		tnid = node_dict[tName[i]][tpos] #Node index in graph for base in transcript
@@ -187,6 +191,21 @@ for i in range(0,len(block_seq)): #Loop through every block sequence
 
 
 		if(qnid != tnid): #query and transcript node not the same
+
+			#Consideration 1 - Whirls from repeated sections
+			#Check if transcript node id already used for another base on the query string
+			try:
+				ll = node_dict[qName[i]].index(tnid)
+
+			except ValueError:
+    				ll = -1
+
+			#Check whether the transcript node you are merging to, isnt already in the query string
+			if(ll >= 0 and ll != qpos): continue		
+
+			#If the node you are intending to merge is already merged to somewhere else on the transcript string, dont merge as can cause wirls
+			if(qnid in node_dict[tName[i]]): continue 
+
 			
 			#print("### MERGE START ###")
 			#print("Started with:",qnid)
@@ -238,6 +257,17 @@ for i in range(0,len(block_seq)): #Loop through every block sequence
 #Now we have a A-Bruijn Graph with possibly cycles in it 
 print("Number of glued nodes: ",glue_nodes)
 
+#labels=dict((n,d['Base']) for n,d in G.nodes(data=True))
+#nx.draw(G,labels=labels)
+#plt.show()
+
+#############################################
+# Bulge Collapsing ##########################
+#############################################
+
+#First want to identify bulges in a graph
+
+
 
 ############################################
 # Simplify Graph and/or find blocks ########
@@ -246,16 +276,16 @@ print("Number of glued nodes: ",glue_nodes)
 #Define a function to be used recursively to check for each succesor node whether it only has one in or out
 
 def successor_check(graph,n,tmerge):
-        ess = [node for node in graph.successors(n)]
+	ess = [node for node in graph.successors(n)] #Get list of succesors
 
         #Check for all successors
-        for s in ess:
-                if(len(graph.out_edges([s])) == 1 and len(graph.in_edges([s])) == 1): #I.e. if only one outgoing edge and one incoming edge it belongs to same block
-                        tmerge.append(s)
-                        successor_check(graph,s,tmerge)
+	for s in ess:
+		if(len(graph.out_edges([s])) == 1 and len(graph.in_edges([s])) == 1): #I.e. if only one outgoing edge and one incoming edge it belongs to same block
+			tmerge.append(s)
+			successor_check(graph,s,tmerge)
 
         #Will recursively run until there is no successor node to add then we will return the list of nodes to merge
-        return(tmerge)
+	return(tmerge)
 
 
 def merge_nodes(lnodes,graph): #Given a list of nodes merge them
@@ -284,20 +314,21 @@ print("Simplifying Graph chains")
 
 #Copy graph before simplifying
 C = G.to_directed()
+conmerge=True
+if(conmerge == True):
+	for n,d in C.nodes(data=True):
 
-for n,d in C.nodes(data=True):
+        	#if(len(C.out_edges([n])) > 1 or len(C.in_edges([n])) > 1 ): continue #If node has more than one edge coming in or out if itself skip
+		if(len(C.out_edges([n])) >1 ): continue #Continue if node branches, that is to say if has more than one out edge
+		if(n in already_merged): continue
 
-        if(len(C.out_edges([n])) > 1 or len(C.in_edges([n])) > 1 ): continue #If node has more than one edge coming in or out if itself skip
-        if(n in already_merged): continue
+		to_merge = [n]
+		tmerge = successor_check(C,n,to_merge)
 
-        to_merge = [n]
-        tmerge = successor_check(C,n,to_merge)
-
-
-        if(len(tmerge) > 1):
-                l = merge_nodes(tmerge,C)
-                for tm in tmerge:
-                        already_merged.append(tm)
+		if(len(tmerge) > 1):
+			l = merge_nodes(tmerge,C)
+			for tm in tmerge:
+				already_merged.append(tm)
 
 
 
@@ -305,7 +336,7 @@ for n,d in C.nodes(data=True):
 ####### Whirl Elimination     ######################
 ####################################################
 
-whirl_removal = True
+whirl_removal = False
 if(whirl_removal):
 
 
@@ -320,9 +351,10 @@ if(whirl_removal):
 	while len(whirls) > 0:
 
 		#Print Graph in current state
-		labels=dict((n,len(d['Base'])) for n,d in C.nodes(data=True))
-		nx.draw(C,labels=labels)
-		plt.show()
+		#labels=dict((n,len(d['Base'])) for n,d in C.nodes(data=True))
+		#labels=dict((n,d['Base']) for n,d in C.nodes(data=True))
+		#nx.draw(C,labels=labels)
+		#plt.show()
 
 		whirl = whirls[0]
 		M_node = None
@@ -377,22 +409,24 @@ else:
 #Check we can get transcripts back from graph #
 ###############################################
 
-#for key in transcripts:
-#	path_alternatives = []
-	#print("Transcript: ", transcripts[key])
-#	pathl = nx.all_simple_paths(G,node_dict[key][0],node_dict[key][-1])
-#	for path in pathl:
-#		seq= ''
-#		#print(path)
-#		for b in path:
-#			#print(G.node[b]['Base'])
-#			seq = seq + G.node[b]['Base']
-#		#print(seq)
-#		path_alternatives.append(seq)
+checktran = False
+if(checktran):
+	for key in transcripts:
+		path_alternatives = []
+		#print("Transcript: ", transcripts[key])
+		pathl = nx.all_simple_paths(G,node_dict[key][0],node_dict[key][-1])
+		for path in pathl:
+			seq= ''
+			#print(path)
+			for b in path:
+				#print(G.node[b]['Base'])
+				seq = seq + G.node[b]['Base']
+			#print(seq)
+			path_alternatives.append(seq)
 
-#	#Loop through and check the strings match
-#	for path in path_alternatives:
-#		if(path == transcripts[key]): print("Found path for: ", key)
+		#Loop through and check the strings match
+		for path in path_alternatives:
+			if(path == transcripts[key]): print("Found path for: ", key)
 		
 
 
@@ -406,8 +440,10 @@ except nx.NetworkXUnfeasible:
 	print("CYCLESSSSSS!!!!!!")
 	base_order = ''
 seq =''
+block_holder = []
 for index in base_order:
 	seq = seq + C.node[index]['Base']
+	block_holder.append(C.node[index]['Base'])
 print(seq)	
 
 #Save sequence to file
@@ -420,6 +456,8 @@ superf.close()
 #Save graph to file
 #nx.write_gpickle(C,"Simples.pkl")
 
+#Save blocks to pickle file
+pickle.dump(block_holder,open("SuperBlocks.pkl","wb"))
 
 #Find the longest path in a DAG
 def longest_path(G):
@@ -449,9 +487,12 @@ def longest_path(G):
 #################################################################
 #################################################################
 
-labels=dict((n,len(d['Base'])) for n,d in C.nodes(data=True))
-nx.draw(C,labels=labels)
-plt.show()
+#labels=dict((n,len(d['Base'])) for n,d in C.nodes(data=True))
+#labels=dict((n,d['Base']) for n,d in C.nodes(data=True))
+#nx.draw(C,labels=labels)
+#plt.show()
+
+nx.write_gpickle(C, "test.gpickle")
 
 #For Debugging
 #labels=dict((n,d['Base']) for n,d in G.nodes(data=True))

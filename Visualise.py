@@ -7,7 +7,7 @@ import sys
 import os
 from matplotlib.pyplot import cm
 import seaborn as sns
-#plt.style.use('fivethirtyeight')
+import pickle
 
 ##################################################
 ###### Visualise blocks in SuperTranscript #######
@@ -17,12 +17,23 @@ import seaborn as sns
 #if(os.path.isfile('supercomp.psl') == False):
 print("Producing match to super transcript")
 BLAT_command = "./blat Super.fasta ESR1_transcripts_for_Michael.fasta supercomp.psl"
-#BLAT_command = "./blat Super.fasta s.cerevisiae/Cluster-1220.1.fasta supercomp.psl"
+#BLAT_command = "./blat Super.fasta s.cerevisiae/Cluster-3231.0.fasta supercomp.psl"
 os.system(BLAT_command)
 
 #First read in BLAT output:
 Header_names = ['match','mismatch','rep.','N\'s','Q gap count','Q gap bases','T gap count','T gap bases','strand','Q name','Q size','Q start','Q end','T name','T size','T start','T end','block count','blocksizes','qStarts','tStarts']
 vData = pd.read_table('supercomp.psl',sep='\t',header = None,names=Header_names,skiprows=5)
+
+#Now read in actual graph and ordered nodes 
+#G = nx.read_gpickle("test.gpickle")
+#Find the sequence for each node (block)
+#base_order = nx.topological_sort(G)
+#seq = []
+#for index in base_order:
+#        seq.append(G.node[index]['Base'])
+
+#Read in pickle of Super Transcript
+seq = pickle.load(open('SuperBlocks.pkl','rb'))
 
 #Make list of transcripts
 transcripts = np.unique(list(vData['Q name']))
@@ -32,7 +43,14 @@ transcripts = np.unique(list(vData['Q name']))
 #Get Super Transcript Length
 ST_length = vData.iloc[0,14]
 
-plt.barh(len(transcripts),ST_length,color='Black',left=0)
+#SuperTranscript as one block
+#plt.barh(len(transcripts),ST_length,color='Black',left=0)
+
+#SuperTranscript as broken up blocks
+accum = 0
+for block in seq:
+	plt.barh(len(transcripts),len(block),color='#ffc024',left=accum,alpha=0.8)
+	accum = accum + len(block)
 
 plot_dict = {}
 col_dict = {}
