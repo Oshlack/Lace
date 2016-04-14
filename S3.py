@@ -129,6 +129,8 @@ for i in range(0,len(bData)):
 # Construct the Graph ##
 ########################
 G= nx.DiGraph()
+#G=nx.MultiDiGraph()
+
 Node_index=0
 node_dict = {} #A place to find the index of a node
 for key in transcripts:
@@ -162,8 +164,13 @@ for key in transcripts:
 ## Add Edges between adjacent transcript nodes ####
 ###################################################
 for key in node_dict:
-        for j in range(0,len(node_dict[key])-1):
-                G.add_edge(node_dict[key][j],node_dict[key][j+1])
+	for j in range(0,len(node_dict[key])-1):
+		#Add a weight for the number of transcripts which make this edge, and also flag which transcripts are using this link
+		wt= 1
+		#If the edge already exists
+		if (G.has_edge(node_dict[key][j],node_dict[key][j+1])): wt = G[node_dict[key][j]][node_dict[key][j+1]]['weight'] + 1
+		G.add_edge(node_dict[key][j],node_dict[key][j+1],weight=wt,key=1)
+
 
 #######################################
 # Glue           ######################
@@ -214,12 +221,12 @@ for i in range(0,len(block_seq)): #Loop through every block sequence
 			#print("Which is:",tnid)
 
 			#Redirect incoming edges
-			for n1,n2 in G.in_edges([qnid]): #For each pair of nodes where there is an edge for query nodes 
-				G.add_edge(n1,tnid)
+			for n1,n2,d in G.in_edges([qnid],data=True): #For each pair of nodes where there is an edge for query nodes 
+				G.add_edge(n1,tnid,d)
 
 			#Redirect Outgoing edges
-			for n1,n2 in G.out_edges([qnid]): #For each pair of nodes where there is an edge for query nodes
-				G.add_edge(tnid,n2)				
+			for n1,n2,d in G.out_edges([qnid],data=True): #For each pair of nodes where there is an edge for query nodes
+				G.add_edge(tnid,n2,d)				
 
 			#Merge attributes, without overwriting transcript node, first for query node
 			G.node[tnid][qName[i]] = qpos	
@@ -280,7 +287,8 @@ def successor_check(graph,n,tmerge):
 
         #Check for all successors
 	for s in ess:
-		if(len(graph.out_edges([s])) == 1 and len(graph.in_edges([s])) == 1): #I.e. if only one outgoing edge and one incoming edge it belongs to same block
+		#if(len(graph.out_edges([s])) <= 1 and len(graph.in_edges([s])) <= 1): #I.e. if only one outgoing edge and one incoming edge it belongs to same block
+		if(len(graph.in_edges([s])) <= 1 and len(ess) <= 1): #Succesor node only has one incoming path and is the only option for the previous node
 			tmerge.append(s)
 			successor_check(graph,s,tmerge)
 
@@ -292,8 +300,8 @@ def merge_nodes(lnodes,graph): #Given a list of nodes merge them
         #Effectively merge all nodes onto first node
 
         #Redirect last node in lists edge to first node in list
-	for n1,n2 in graph.out_edges(lnodes[-1]):
-		graph.add_edge(lnodes[0],n2)
+	for n1,n2,d in graph.out_edges(lnodes[-1],data=True):
+		graph.add_edge(lnodes[0],n2,d)
 
         #Get base sequence for full merge
 	seq = graph.node[lnodes[0]]['Base']
@@ -315,7 +323,7 @@ print("Simplifying Graph chains")
 #Copy graph before simplifying
 C = G.to_directed()
 conmerge=True
-if(conmerge == True):
+if(conmerge):
 	for n,d in C.nodes(data=True):
 
         	#if(len(C.out_edges([n])) > 1 or len(C.in_edges([n])) > 1 ): continue #If node has more than one edge coming in or out if itself skip
@@ -378,16 +386,16 @@ if(whirl_removal):
 
 		### Create edges in new node and remove some from old node
 		#Copy out edges to new node and remove from old
-		for n1,n2 in C.out_edges(iM):
+		for n1,n2,d in C.out_edges(iM,data=True):
 			if(n2 not in whirl):
-				C.add_edge(Node_index,n2)
+				C.add_edge(Node_index,n2,d)
 				C.remove_edge(iM,n2)
 		
 
 		#Get In edge to new node and remove from old
-		for n1,n2 in C.in_edges(iM):
+		for n1,n2,d in C.in_edges(iM,data=True):
 			if(n1 in whirl): 
-				C.add_edge(n1,Node_index)
+				C.add_edge(n1,Node_index,d)
 				C.remove_edge(n1,iM)
 
 		Node_index= Node_index+1
@@ -440,17 +448,31 @@ except nx.NetworkXUnfeasible:
 	print("CYCLESSSSSS!!!!!!")
 	base_order = ''
 seq =''
+
 block_holder = []
+#Save start and end co-ordinates of each block
+coord = [0]
+
 for index in base_order:
 	seq = seq + C.node[index]['Base']
 	block_holder.append(C.node[index]['Base'])
+	coord.append(coord[-1] + len(C.node[index]['Base']))
 print(seq)	
 
 #Save sequence to file
 superf = open('Super.fasta','w')
 superf.write('>Super\n')
-superf.write(seq)
+superf.write(seq + "\n")
+superf.write("SuperBlocks: " + str(coord) + "\n")
 superf.close()
+
+#MAKE SAF file
+super_saf = open('Super.saf','w')
+super_saf.write('GeneID' + '\t' + 'Chr' + '\t' + 'Start' + '\t' + 'End' + '\t' + 'Strand' + '\n')
+for i in range(0,len(coord)-1):
+	super_saf.write('GeneX' '\t' + 'Chromo' + '\t' + str(coord[i]) + '\t' + str(coord[i+1]) + '\t' + '+' + '\n')
+super_saf.close()
+
 
 
 #Save graph to file

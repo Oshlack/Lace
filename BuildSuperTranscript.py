@@ -16,14 +16,46 @@ from matplotlib.pyplot import cm
 #sys.setrecursionlimit(1000000) # 10000 is an example, try with different values
 sys.setrecursionlimit(10000)
 
-def SuperTran(fname):
-	
-	verbose = False
 
+	#Define a function to be used recursively to check for each succesor node whether it only has one in or out
+
+def successor_check(graph,n,tmerge):
+	ess = [node for node in graph.successors(n)] #Get list of succesors
+
+	#Check for all successors
+	for s in ess:
+		#if(len(graph.out_edges([s])) == 1 and len(graph.in_edges([s])) == 1): #I.e. if only one outgoing edge and one incoming edge it belongs to same block
+		if(len(graph.in_edges([s])) <= 1 and len(ess) <= 1): #Succesor node only has one incoming path and is the only option for the previous node
+			tmerge.append(s)
+			successor_check(graph,s,tmerge)
+
+	#Will recursively run until there is no successor node to add then we will return the list of nodes to merge
+	return(tmerge)
+
+
+def merge_nodes(lnodes,graph): #Given a list of nodes merge them
+	#Effectively merge all nodes onto first node
+
+	#Redirect last node in lists edge to first node in list
+	for n1,n2,d in graph.out_edges(lnodes[-1],data=True):
+		graph.add_edge(lnodes[0],n2,d)
+
+	#Get base sequence for full merge
+	seq = graph.node[lnodes[0]]['Base']
+	for i in range(1,len(lnodes)):
+		seq = seq + graph.node[lnodes[i]]['Base']
+		graph.remove_node(lnodes[i])
+
+	#Add full sequence of merged bases to first node
+	graph.node[lnodes[0]]['Base'] = seq
+	return(lnodes[0]) #Return Node id of merged node
+
+
+def SuperTran(fname,verbose=False):
+	
 	#Start Clock for timing
 	start_time = time.time()
 
-	if(verbose): print("Reading in transcripts and pairwise BLAT if necesssay")
 	#####################
 	#Read in transcripts
 	#####################
@@ -43,20 +75,42 @@ def SuperTran(fname):
 		else:
 			transcripts[tName] = transcripts[tName] + line.split('\n')[0].split('\r')[0]
 
+	seq = ''
+
 	#If there is only one transcript in this file, then simply that transcript is the super transcript
 	if(len(transcripts) == 1):
 		if(verbose): print("One\n") 
 		seq = next(iter(transcripts.values())) #Python 3 specific codee...
-		return(seq) 
 
-	if(verbose): print('#########' + fname + '#########')
+	#Try topo sorting a graph
+	try:
+		seq = BuildGraph(fname,transcripts,verbose)
+
+	except: #Graph building failed, just take longest transcript or (concatenate all transcripts)
+		temp = 0
+		seq = ''
+		print('FAILED to build graph and topo sort')
+		for val in transcripts:
+			if(len(val) > temp):
+				temp = len(val)
+				seq = ''.join(val)
+			
+	print("---- %s seconds ----" %(time.time()-start_time))
+	return(seq)
+
+def BuildGraph(fname,transcripts,verbose=False):
+	# A Function to build a bruijn graph/splice node graph based on the transcripts assigned to a given cluster
+	# One node per base in the transcript are created, then based on pairwise allignments of transcripts (using BLAT)
+	# nodes in overlapping transcripts are glued together
+	# Then the graph is collapsed into superblocks where each node is built of a collapsed chain of nodes with one incoming and outgoing edge
+	# Finally a topological sorting is made 
 
 	###################################################
 	# Loop pairwise through transcripts and BLAT allign
 	###################################################
 
 	#This may well be changed/ skipped/ parallelised
-	if(os.path.isfile(fname.split('.fasta')[0] + '.psl') == False):
+	if(not os.path.isfile(fname.split('.fasta')[0] + '.psl')):
 		BLAT_command = "./blat %s %s -maxGap=0 -minIdentity=100 -maxIntron=0 %s.psl" %(fname,fname,fname.split('.fasta')[0]) #This gets almost exact matches
 		os.system(BLAT_command)
 
@@ -64,7 +118,6 @@ def SuperTran(fname):
 	#First read in BLAT output:
 	Header_names = ['match','mismatch','rep.','N\'s','Q gap count','Q gap bases','T gap count','T gap bases','strand','Q name','Q size','Q start','Q end','T name','T size','T start','T end','block count','blocksizes','qStarts','tStarts']
 
-	#bData = pd.read_table('ESR1_exakt.psl',sep='\t',header = None,names=Header_names,skiprows=5)
 	bData = pd.read_table(fname.split('.fasta')[0] + '.psl',sep='\t',header = None,names=Header_names,skiprows=5)
 
 	###############
@@ -116,7 +169,6 @@ def SuperTran(fname):
 	node_dict = {} #A place to find the index of a node
 	for key in transcripts:
 		node_dict[key] = [-1] * len(list(transcripts[key]))
-	pn_id = 0 #Previous Node Id
 
 	#############################
 	# ADD NODES AND EDGES #######
@@ -141,6 +193,17 @@ def SuperTran(fname):
 
 			Node_index=Node_index + 1
 
+	###################################################
+        ## Add Edges between adjacent transcript nodes ####
+        ###################################################
+	for key in node_dict:
+		for j in range(0,len(node_dict[key])-1):
+			G.add_edge(node_dict[key][j],node_dict[key][j+1])
+
+
+	####################################################
+	## Let the gluing commence #########################
+	####################################################
 
 	#Now we want to merge the nodes in blocks
 	for i in range(0,len(block_seq)): #Loop through every block sequence
@@ -187,6 +250,7 @@ def SuperTran(fname):
 				for n1,n2 in G.out_edges([qnid]): #For each pair of nodes where there is an edge for query nodes
 					G.add_edge(tnid,n2)				
 
+
 				#Merge attributes, without overwriting transcript node, first for query node
 				G.node[tnid][qName[i]] = qpos	
 				
@@ -216,30 +280,95 @@ def SuperTran(fname):
 				
 				#Recursive check that no element in node dict contains the old node which is removed, if it does replace it...perhaps think of another way...
 				for key in node_dict:
-					if(key ==  qName[i] or key == tName[i]): continue
 					if(qnid in node_dict[key]):
 						node_dict[key][node_dict[key].index(qnid)] = tnid
 
 
 	if(verbose): print("Adding in node edges based on transcripts")
 
-	###################################################
-	## Add Edges between adjacent transcript nodes ####
-	###################################################
-	for key in node_dict:
-		for j in range(0,len(node_dict[key])-1):
-			G.add_edge(node_dict[key][j],node_dict[key][j+1])
+
+	############################################
+	# Simplify Graph and/or find blocks ########
+	############################################
+
+	already_merged = []
+
+	#Loop through nodes
+	if(verbose): print("Simplifying Graph chains")
+
+	#Copy graph before simplifying
+	C = G.to_directed()
+	conmerge=True
+	if(conmerge == True):
+		for n,d in C.nodes(data=True):
+			if(len(C.out_edges([n])) >1 ): continue #Continue if node branches, that is to say if has more than one out edge
+			if(n in already_merged): continue
+			to_merge = [n]
+			tmerge = successor_check(C,n,to_merge)
+			if(len(tmerge) > 1):
+				l = merge_nodes(tmerge,C)
+				for tm in tmerge:
+					already_merged.append(tm)
 
 
-	if(verbose): print("Topoligically ordering graph")
+
+	####################################################
+	####### Whirl Elimination     ######################
+	####################################################
+	whirl_removal = False
+	if(whirl_removal):
+		#Find all whirls
+		print("Finding Whirls...")
+		whirls = list(nx.simple_cycles(C))
+		print("DONE")
+
+
+		#Loop through each whirl
+		while len(whirls) > 0:
+
+			whirl = whirls[0]
+			M_node = None
+			Multi = 0
+
+			#Find Highest multiplicity node in loop to use for breaking point of cycle
+			for node in whirl:
+				temp = len(C.out_edges([node])) + len(C.out_edges([node]))
+				if(temp >= Multi):
+					Multi = temp
+					M_node = node
+
+			iM = whirl.index(M_node)
+			iM = whirl[iM]
+
+			#Make a copy of node
+			C.add_node(Node_index)
+			C.node[Node_index]['Base'] = C.node[iM]['Base']
+
+
+			### Create edges in new node and remove some from old node
+			#Copy out edges to new node and remove from old
+			for n1,n2,d in C.out_edges(iM,data=True):
+				if(n2 not in whirl):
+					C.add_edge(Node_index,n2,d)
+					C.remove_edge(iM,n2)
+			
+
+			#Get In edge to new node and remove from old
+			for n1,n2,d in C.in_edges(iM,data=True):
+				if(n1 in whirl): 
+					C.add_edge(n1,Node_index,d)
+					C.remove_edge(n1,iM)
+
+			Node_index= Node_index+1
+
+			#Now recalculate whirls
+			whirls = list(nx.simple_cycles(C))
 
 	
-	#Order base in graph
-	#base_order = nx.topological_sort_recursive(G)
 
 	#Will crash if there is a cycle, therefore do a try
 	try:
-		base_order = nx.topological_sort(G)
+		base_order = nx.topological_sort(C)
 
 	except nx.NetworkXUnfeasible:
 		print("CYCLESSSSSS!!!!!!")
@@ -247,17 +376,16 @@ def SuperTran(fname):
 	
 		
 	seq =''
+	coord = [0]
 	for index in base_order:
-		seq = seq + G.node[index]['Base']
+		seq = seq + C.node[index]['Base']
+		coord.append(coord[-1] + len(C.node[index]['Base']))
 
 	#Save sequence to file
-	#superf = open('Super.fasta','w')
-	#superf.write('>Super\n')
-	#superf.write(seq)
-	#superf.close()
-
-	if(verbose): print("---- %s seconds ----" %(time.time()-start_time))	
-	print("---- %s seconds ----" %(time.time()-start_time))	
+	superf = open('Super.fasta','w')
+	superf.write('>Super' + '\n')
+	superf.write(seq)
+	superf.close()
 
 	return(seq)
 
@@ -271,7 +399,7 @@ if __name__ == '__main__':
 
 	else:
 		fname = sys.argv[1]
-		seq = SuperTran(fname)
+		seq = SuperTran(fname,verbose=True)
 		
 
 	
