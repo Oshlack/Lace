@@ -1,12 +1,16 @@
 #The idea here is to build a script which takes a list of fasta files (each file being a set of transcripts from a Corset cluster which supposedly come from the same gene).
 #Then given each cluster, there should be a seperate parallelised job for each file which constructs the SuperTranscript for that cluster.
 
+import multiprocessing, logging
 from multiprocessing import Pool
 from multiprocessing import Process
 import os
 from BuildSuperTranscript import SuperTran
 import sys
 import time
+
+logger = multiprocessing.log_to_stderr()
+logger.setLevel(multiprocessing.SUBDEBUG)
 
 def info(title):
 	print(title)
@@ -19,6 +23,14 @@ def f(name):
 	info('function f')
 	print('hello',name)
 
+def worker(fname):
+	seq =''
+	try:
+		seq,saf = SuperTran(fname)
+	except:
+		print("Failed:", fname)
+
+	return seq,saf
 
 def Para(clustlist):
 	clusters = []
@@ -41,7 +53,7 @@ def Para(clustlist):
 
 	# BY POOL
 	pool = Pool(processes=4)
-	result = pool.map(SuperTran,clusters) #Are the results in the same order as the arguments??? Check!!!!
+	result,saf = pool.map(SuperTran,clusters) #Are the results in the same order as the arguments??? Check!!!!
 	pool.close()
 	pool.join()
 	#print(result)
@@ -51,6 +63,11 @@ def Para(clustlist):
 	for i,clust in enumerate(clusters):
 		superf.write('>' + clust + '\n')
 		superf.write(result[i] + '\n')
+
+	#Write Super saf
+	supsaf = open('SuperDuper.saf','w')
+	for i in saf:
+		supsaf.write(saf[i])
 		
 
 def Ser(clustlist):
@@ -89,6 +106,7 @@ def Split(genome,corsetfile):
 		for line in corse:
 			tran = line.split()[0]	
 			clust = line.split()[1].rstrip('/n')
+			clust = clust.replace('/','-')
 			cluster[tran] = clust			
 
 
@@ -118,16 +136,25 @@ def Split(genome,corsetfile):
 
 		#Make a file for each gene
 		gene_list = set(geneid.values())
-		gene_list.remove('None') #Remove the placer holder for the ' None' which were transcripts not mapped to clusters in corset
+		if('None' in gene_list): gene_list.remove('None') #Remove the placer holder for the ' None' which were transcripts not mapped to clusters in corset
 
+		cnts = []
 		for gene in gene_list:
 
 			#Count number of transcripts assigned to a cluster
-			#cnt =0
-			#for val in cluster.values():
-			#	if(val == gene): cnt = cnt + 1
+			cnt =0
+			for val in cluster.values():
+				if(val == gene): cnt = cnt + 1
+			cnts.append(cnt)
 
-			f = open(corsetfile.split('clusters')[0] + gene + '.fasta','w') 
+			#For Corset
+			#fn = corsetfile.split('clusters')[0] + gene + '.fasta'
+			fn = os.path.dirname(corsetfile) + '/' + gene + '.fasta' #General		
+
+			if(os.path.isfile(fn)): continue	#If already file
+			
+
+			f = open(fn,'w') 
 			for tag in transcripts.keys():
 				if(gene == geneid[tag]):
 					f.write('>' + tag +  '\n')
@@ -140,14 +167,21 @@ def Split(genome,corsetfile):
 
 		fnames = []
 		for gene in gene_list:
-			fname = corsetfile.split('clusters')[0] + gene + '.fasta'
+			#fname = corsetfile.split('clusters')[0] + gene + '.fasta' # For Corset
+			fname = os.path.dirname(corsetfile) + '/' + gene + '.fasta'
 			fnames.append(fname)
 
 		# BY POOL
 		pool = Pool(processes=4)
-		result = pool.map(SuperTran,fnames)
+		result = pool.map(worker,fnames)
 		pool.close()
 		pool.join()
+
+		#Write Overall Super Duper Tran
+		superf = open('SuperDuper.fasta','w')
+		for i,clust in enumerate(fnames):
+			superf.write('>' + clust + ' Number of transcripts: ' + str(cnts[i]) +  '\n')
+			superf.write(result[i] + '\n')
 
 		print("SPLIT ---- %s seconds ----" %(time.time()-start_time))
 	
@@ -165,5 +199,5 @@ if __name__ == '__main__':
 			Split(genome,corset)
 		if(len(sys.argv) == 2):
 			clustlist = sys.argv[1]
-			#Para(clustlist)
-			Ser(clustlist)
+			Para(clustlist)
+			#Ser(clustlist)
