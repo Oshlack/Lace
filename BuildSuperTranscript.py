@@ -385,9 +385,13 @@ def BuildGraph(fname,transcripts,verbose=False):
 		seq = seq + C.node[index]['Base']
 		coord.append(coord[-1] + len(C.node[index]['Base']))
 
-	saf = ''
+	#String for annotation file
+	anno = ''
 	for i in range(0,len(coord)-1):
-		saf = saf + (fname.split('/')[-1]).split('.fasta')[0] + '\t' + 'Chromo' + '\t' + str(coord[i]) + '\t' + str(coord[i+1]) + '\t' + '+' + '\n'
+		#anno = anno + (fname.split('/')[-1]).split('.fasta')[0] + '\t' + (fname.split('/')[-1]).split('.fasta')[0] + '\t' + str(coord[i]) + '\t' + str(coord[i+1]) + '\t' + '+' + '\n' #SAF format
+		#anno = anno + (fname.split('/')[-1]).split('.fasta')[0] + '\t' + str(coord[i]) + '\t' + str(coord[i+1]) + '\n' #Basic BED format
+		anno = anno + (fname.split('/')[-1]).split('.fasta')[0] + '\t' + 'SuperTranscript' + '\t' + 'exon' + '\t' + str(coord[i]) + '\t' + str(coord[i+1]) + '\t' + '.' + '\t' +'.' + '\t' + '0' + '\n' #GFF2 format
+
 
 	#Save sequence to file
 	#superf = open('Super.fasta','w')
@@ -395,7 +399,7 @@ def BuildGraph(fname,transcripts,verbose=False):
 	#superf.write(seq)
 	#superf.close()
 
-	return(seq,saf)
+	return(seq,anno)
 
 if __name__ == '__main__':
 	''' Takes one fasta file which contains all transcripts in cluster (gene) and builds a super transcript from it, outputing the sequence'''
@@ -407,10 +411,10 @@ if __name__ == '__main__':
 
 	else:
 		fname = sys.argv[1]
-		seq,saf = SuperTran(fname,verbose=True)
+		seq,anno = SuperTran(fname,verbose=True)
 
 		print(seq)
-		print(saf)
+		print(anno)
 		
 
 	
