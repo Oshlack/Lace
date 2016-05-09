@@ -9,8 +9,8 @@ from BuildSuperTranscript import SuperTran
 import sys
 import time
 
-logger = multiprocessing.log_to_stderr()
-logger.setLevel(multiprocessing.SUBDEBUG)
+#logger = multiprocessing.log_to_stderr()
+#logger.setLevel(multiprocessing.SUBDEBUG)
 
 def info(title):
 	print(title)
@@ -29,7 +29,6 @@ def worker(fname):
 		seq,saf = SuperTran(fname)
 	except:
 		print("Failed:", fname)
-
 	return seq,saf
 
 def Para(clustlist):
@@ -43,31 +42,25 @@ def Para(clustlist):
 		print("Input list not found, exiting...")
 		sys.exit()
 
-	#BY PROCESSES
-	#jobs = []
-	#for cluster in clusters:
-	#	p = Process(target=SuperTran,args=(cluster,))
-	#	jobs.append(p)
-	#	p.start()
-	#	p.join()
-
 	# BY POOL
-	pool = Pool(processes=4)
-	result,saf = pool.map(SuperTran,clusters) #Are the results in the same order as the arguments??? Check!!!!
+	#ncore = 4
+	ncore = multiprocessing.cpu_count()
+	pool = Pool(processes=ncore)
+	result= pool.map_async(SuperTran,clusters) 
 	pool.close()
-	pool.join()
-	#print(result)
+
+	results = result.get()
 
 	#Write Overall Super Duper Tran
 	superf = open('SuperDuper.fasta','w')
 	for i,clust in enumerate(clusters):
 		superf.write('>' + clust + '\n')
-		superf.write(result[i] + '\n')
+		superf.write(results[i][0] + '\n')
 
 	#Write Super saf
 	supsaf = open('SuperDuper.saf','w')
-	for i in saf:
-		supsaf.write(saf[i])
+	for res in results:
+		supsaf.write(res[1])
 		
 
 def Ser(clustlist):

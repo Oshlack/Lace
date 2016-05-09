@@ -77,7 +77,7 @@ d3.json("force.json", function(error, graph) {
   node.append("circle")
 	.attr("r", 5)
         .style("fill", function(d) { return color(d.group); });
- 
+   
  node.append("text")
     .attr("dx", 12)
     .attr("dy", ".35em")

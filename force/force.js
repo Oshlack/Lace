@@ -39,7 +39,7 @@ d3.json("force.json", function(json) {
 
 
   node.append("svg:title")
-      .text(function(d) { return d.name; });
+      .text(function(d) { return d.Base; });
 
   vis.style("opacity", 1e-6)
     .transition()

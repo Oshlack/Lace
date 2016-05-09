@@ -13,7 +13,6 @@ import sys
 import os
 from matplotlib.pyplot import cm 
 
-#sys.setrecursionlimit(1000000) # 10000 is an example, try with different values
 sys.setrecursionlimit(10000)
 
 
@@ -81,22 +80,26 @@ def SuperTran(fname,verbose=False):
 	if(len(transcripts) == 1):
 		if(verbose): print("One\n") 
 		seq = next(iter(transcripts.values())) #Python 3 specific codee...
+		saf = (fname.split('/')[-1]).split('.fasta')[0] + '\t' + 'Chromo' + '\t' + '0' + '\t' + str(len(seq)) + '\t' + '+' + '\n'
 
-	#Try topo sorting a graph
-	try:
-		seq = BuildGraph(fname,transcripts,verbose)
+	else:
+		#Try topo sorting a graph
+		try:
+			seq, saf = BuildGraph(fname,transcripts,verbose)
 
-	except: #Graph building failed, just take longest transcript or (concatenate all transcripts)
-		temp = 0
-		seq = ''
-		print('FAILED to build graph and topo sort')
-		for val in transcripts:
-			if(len(val) > temp):
-				temp = len(val)
-				seq = ''.join(val)
-			
-	print("---- %s seconds ----" %(time.time()-start_time))
-	return(seq)
+		except: #Graph building failed, just take longest transcript or (concatenate all transcripts)
+			temp = 0
+			seq = ''
+			print('FAILED to build graph and topo sort')
+			for val in transcripts:
+				if(len(val) > temp):
+					temp = len(val)
+					seq = ''.join(val)
+
+			saf = (fname.split('/')[-1]).split('.fasta')[0] + '\t' + 'Chromo' + '\t' + '0' + '\t' + str(len(seq)) + '\t' + '+' + '\n'
+	
+	#print("---- %s seconds ----" %(time.time()-start_time))
+	return(seq,saf)
 
 def BuildGraph(fname,transcripts,verbose=False):
 	# A Function to build a bruijn graph/splice node graph based on the transcripts assigned to a given cluster
@@ -372,7 +375,8 @@ def BuildGraph(fname,transcripts,verbose=False):
 
 	except nx.NetworkXUnfeasible:
 		print("CYCLESSSSSS!!!!!!")
-		return("CYCLE")
+		saf = ''
+		return("CYCLE",saf)
 	
 		
 	seq =''
@@ -381,13 +385,17 @@ def BuildGraph(fname,transcripts,verbose=False):
 		seq = seq + C.node[index]['Base']
 		coord.append(coord[-1] + len(C.node[index]['Base']))
 
-	#Save sequence to file
-	superf = open('Super.fasta','w')
-	superf.write('>Super' + '\n')
-	superf.write(seq)
-	superf.close()
+	saf = ''
+	for i in range(0,len(coord)-1):
+		saf = saf + (fname.split('/')[-1]).split('.fasta')[0] + '\t' + 'Chromo' + '\t' + str(coord[i]) + '\t' + str(coord[i+1]) + '\t' + '+' + '\n'
 
-	return(seq)
+	#Save sequence to file
+	#superf = open('Super.fasta','w')
+	#superf.write('>Super' + '\n')
+	#superf.write(seq)
+	#superf.close()
+
+	return(seq,saf)
 
 if __name__ == '__main__':
 	''' Takes one fasta file which contains all transcripts in cluster (gene) and builds a super transcript from it, outputing the sequence'''
@@ -399,7 +407,10 @@ if __name__ == '__main__':
 
 	else:
 		fname = sys.argv[1]
-		seq = SuperTran(fname,verbose=True)
+		seq,saf = SuperTran(fname,verbose=True)
+
+		print(seq)
+		print(saf)
 		
 
 	
