@@ -80,12 +80,12 @@ def SuperTran(fname,verbose=False):
 	if(len(transcripts) == 1):
 		if(verbose): print("One\n") 
 		seq = next(iter(transcripts.values())) #Python 3 specific codee...
-		saf = (fname.split('/')[-1]).split('.fasta')[0] + '\t' + 'Chromo' + '\t' + '0' + '\t' + str(len(seq)) + '\t' + '+' + '\n'
+		anno = (fname.split('/')[-1]).split('.fasta')[0] + '\t' + 'Chromo' + '\t' + '0' + '\t' + str(len(seq)) + '\t' + '+' + '\n'
 
 	else:
 		#Try topo sorting a graph
 		try:
-			seq, saf = BuildGraph(fname,transcripts,verbose)
+			seq, anno = BuildGraph(fname,transcripts,verbose)
 
 		except: #Graph building failed, just take longest transcript or (concatenate all transcripts)
 			temp = 0
@@ -96,10 +96,10 @@ def SuperTran(fname,verbose=False):
 					temp = len(val)
 					seq = ''.join(val)
 
-			saf = (fname.split('/')[-1]).split('.fasta')[0] + '\t' + 'Chromo' + '\t' + '0' + '\t' + str(len(seq)) + '\t' + '+' + '\n'
+			anno = (fname.split('/')[-1]).split('.fasta')[0] + '\t' + 'Chromo' + '\t' + '0' + '\t' + str(len(seq)) + '\t' + '+' + '\n'
 	
 	#print("---- %s seconds ----" %(time.time()-start_time))
-	return(seq,saf)
+	return(seq,anno)
 
 def BuildGraph(fname,transcripts,verbose=False):
 	# A Function to build a bruijn graph/splice node graph based on the transcripts assigned to a given cluster
@@ -375,8 +375,8 @@ def BuildGraph(fname,transcripts,verbose=False):
 
 	except nx.NetworkXUnfeasible:
 		print("CYCLESSSSSS!!!!!!")
-		saf = ''
-		return("CYCLE",saf)
+		anno = ''
+		return("CYCLE",anno)
 	
 		
 	seq =''

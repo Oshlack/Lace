@@ -19,17 +19,14 @@ def info(title):
 		print('parent process:',os.getppid())
 	print('process id:',os.getpid())
 
-def f(name):
-	info('function f')
-	print('hello',name)
-
 def worker(fname):
 	seq =''
+	ann = ''
 	try:
-		seq,saf = SuperTran(fname)
+		seq,ann = SuperTran(fname)
 	except:
 		print("Failed:", fname)
-	return seq,saf
+	return seq,ann
 
 def Para(clustlist):
 	clusters = []
@@ -43,7 +40,6 @@ def Para(clustlist):
 		sys.exit()
 
 	# BY POOL
-	#ncore = 4
 	ncore = multiprocessing.cpu_count()
 	pool = Pool(processes=ncore)
 	result= pool.map_async(SuperTran,clusters) 
@@ -51,41 +47,29 @@ def Para(clustlist):
 
 	results = result.get()
 
+	write_dir = os.path.dirname(clustlist)
+	if(write_dir == ''): write_dir = '.'
+
 	#Write Overall Super Duper Tran
-	superf = open('SuperDuper.fasta','w')
-	for i,clust in enumerate(clusters):
-		superf.write('>' + clust + '\n')
-		superf.write(results[i][0] + '\n')
+	superf = open(write_dir + '/' +'SuperDuper.fasta','w')
+	supgff = open(write_dir + '/' +'SuperDuper.gff','w')
 
-	#Write Super saf
-	supsaf = open('SuperDuper.saf','w')
-	for res in results:
-		supsaf.write(res[1])
+	for i,clust in enumerate(fnames):
+		superf.write('>' + clust + ' Number of transcripts: ' + str(cnts[i]) +  '\n')
+		superf.write(result[i][0] + '\n')
+
+	#Write Super gff
+	for res in result:
+        	supgff.write(res[1])
 		
-
-def Ser(clustlist):
-	clusters = []
-	if(os.path.isfile(clustlist)):
-		f = open(clustlist,'r')
-		for line in f:
-			clusters.append(line.split("\n")[0])
-
-	else:
-		print("Input list not found, exiting...")
-		sys.exit()
-
-	#BY PROCESSES
-	jobs = []
-	for cluster in clusters:
-		p = Process(target=SuperTran,args=(cluster,))
-		jobs.append(p)
-		p.start()
-		p.join()
-
 
 #Split fasta file into genes first then parallelise the BLAT for the different genes
 def Split(genome,corsetfile):
 	start_time = time.time()
+
+	#Find working directory
+	dir = os.path.dirname(corsetfile)
+	if(dir==''): dir='.'
 
 
 	#First create dictionary from corset output assigning a transcript to a cluster
@@ -140,9 +124,7 @@ def Split(genome,corsetfile):
 				if(val == gene): cnt = cnt + 1
 			cnts.append(cnt)
 
-			#For Corset
-			#fn = corsetfile.split('clusters')[0] + gene + '.fasta'
-			fn = os.path.dirname(corsetfile) + '/' + gene + '.fasta' #General		
+			fn = dir + '/' + gene + '.fasta' #General		
 
 			if(os.path.isfile(fn)): continue	#If already file
 			
@@ -160,21 +142,29 @@ def Split(genome,corsetfile):
 
 		fnames = []
 		for gene in gene_list:
-			#fname = corsetfile.split('clusters')[0] + gene + '.fasta' # For Corset
-			fname = os.path.dirname(corsetfile) + '/' + gene + '.fasta'
+			fname = dir + '/' + gene + '.fasta'
 			fnames.append(fname)
 
 		# BY POOL
-		pool = Pool(processes=4)
-		result = pool.map(worker,fnames)
+		ncore = multiprocessing.cpu_count()
+		pool = Pool(processes=ncore)
+		results = pool.map_async(worker,fnames)
 		pool.close()
 		pool.join()
+		result = results.get()
+
 
 		#Write Overall Super Duper Tran
-		superf = open('SuperDuper.fasta','w')
+		superf = open(dir + '/' +'SuperDuper.fasta','w')
+		supgff = open(dir + '/' +'SuperDuper.gff','w')
+
 		for i,clust in enumerate(fnames):
 			superf.write('>' + clust + ' Number of transcripts: ' + str(cnts[i]) +  '\n')
-			superf.write(result[i] + '\n')
+			superf.write(result[i][0] + '\n')
+
+		#Write Super gff
+		for res in result:
+                        supgff.write(res[1])
 
 		print("SPLIT ---- %s seconds ----" %(time.time()-start_time))
 	
@@ -190,6 +180,7 @@ if __name__ == '__main__':
 			genome = sys.argv[1]
 			corset = sys.argv[2]
 			Split(genome,corset)
+
 		if(len(sys.argv) == 2):
 			clustlist = sys.argv[1]
 			Para(clustlist)
