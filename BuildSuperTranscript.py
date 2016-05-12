@@ -80,7 +80,8 @@ def SuperTran(fname,verbose=False):
 	if(len(transcripts) == 1):
 		if(verbose): print("One\n") 
 		seq = next(iter(transcripts.values())) #Python 3 specific codee...
-		anno = (fname.split('/')[-1]).split('.fasta')[0] + '\t' + 'Chromo' + '\t' + '0' + '\t' + str(len(seq)) + '\t' + '+' + '\n'
+		#anno = (fname.split('/')[-1]).split('.fasta')[0] + '\t' + 'Chromo' + '\t' + '0' + '\t' + str(len(seq)) + '\t' + '+' + '\n'
+		anno = anno + (fname.split('/')[-1]).split('.fasta')[0] + '\t' + 'SuperTranscript' + '\t' + 'exon' + '\t' + 0 + '\t' + str(len(seq)) + '\t' + '.' + '\t' +'.' + '\t' + '0' + '\t' + '.'  + '\n'
 
 	else:
 		#Try topo sorting a graph
@@ -96,7 +97,8 @@ def SuperTran(fname,verbose=False):
 					temp = len(val)
 					seq = ''.join(val)
 
-			anno = (fname.split('/')[-1]).split('.fasta')[0] + '\t' + 'Chromo' + '\t' + '0' + '\t' + str(len(seq)) + '\t' + '+' + '\n'
+			#anno = (fname.split('/')[-1]).split('.fasta')[0] + '\t' + 'Chromo' + '\t' + '0' + '\t' + str(len(seq)) + '\t' + '+' + '\n'
+			anno = anno + (fname.split('/')[-1]).split('.fasta')[0] + '\t' + 'SuperTranscript' + '\t' + 'exon' + '\t' + 0 + '\t' + str(len(seq)) + '\t' + '.' + '\t' +'.' + '\t' + '0' + '\t' + '.' + '\n'
 	
 	#print("---- %s seconds ----" %(time.time()-start_time))
 	return(seq,anno)
@@ -148,7 +150,7 @@ def BuildGraph(fname,transcripts,verbose=False):
 		if(paired in pair_list): continue
 		else: pair_list.append(bData.iloc[i,9]+bData.iloc[i,13])
 		
-		
+		#Extract thhe info
 		seq=list(transcripts[bData.iloc[i,9]]) #Get sequence from query name
 		block_sizes = (bData.iloc[i,18]).rstrip(',').split(',')
 		qStarts = (bData.iloc[i,19]).rstrip(',').split(',')
@@ -390,7 +392,7 @@ def BuildGraph(fname,transcripts,verbose=False):
 	for i in range(0,len(coord)-1):
 		#anno = anno + (fname.split('/')[-1]).split('.fasta')[0] + '\t' + (fname.split('/')[-1]).split('.fasta')[0] + '\t' + str(coord[i]) + '\t' + str(coord[i+1]) + '\t' + '+' + '\n' #SAF format
 		#anno = anno + (fname.split('/')[-1]).split('.fasta')[0] + '\t' + str(coord[i]) + '\t' + str(coord[i+1]) + '\n' #Basic BED format
-		anno = anno + (fname.split('/')[-1]).split('.fasta')[0] + '\t' + 'SuperTranscript' + '\t' + 'exon' + '\t' + str(coord[i]) + '\t' + str(coord[i+1]) + '\t' + '.' + '\t' +'.' + '\t' + '0' + '\n' #GFF2 format
+		anno = anno + (fname.split('/')[-1]).split('.fasta')[0] + '\t' + 'SuperTranscript' + '\t' + 'exon' + '\t' + str(coord[i]) + '\t' + str(coord[i+1]) + '\t' + '.' + '\t' +'.' + '\t' + '0' + '\t' +  '.'  + '\n' #GFF2 format
 
 
 	#Save sequence to file
