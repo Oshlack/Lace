@@ -320,12 +320,12 @@ def BuildGraph(fname,transcripts,verbose=False):
 	####################################################
 	####### Whirl Elimination     ######################
 	####################################################
-	whirl_removal = False
+	whirl_removal = True
 	if(whirl_removal):
 		#Find all whirls
-		print("Finding Whirls...")
+		#print("Finding Whirls...")
 		whirls = list(nx.simple_cycles(C))
-		print("DONE")
+		#print("DONE")
 
 
 		#Loop through each whirl
