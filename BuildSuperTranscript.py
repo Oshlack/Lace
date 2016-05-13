@@ -116,7 +116,8 @@ def BuildGraph(fname,transcripts,verbose=False):
 
 	#This may well be changed/ skipped/ parallelised
 	if(not os.path.isfile(fname.split('.fasta')[0] + '.psl')):
-		BLAT_command = "./blat %s %s -maxGap=0 -minIdentity=100 -maxIntron=0 %s.psl" %(fname,fname,fname.split('.fasta')[0]) #This gets almost exact matches
+		#BLAT_command = "./blat %s %s -maxGap=0 -minIdentity=100 -maxIntron=0 %s.psl" %(fname,fname,fname.split('.fasta')[0]) #This gets almost exact matches
+		BLAT_command = "./blat %s %s -maxGap=0 -minIdentity=98  %s.psl" %(fname,fname,fname.split('.fasta')[0]) #This gets almost exact matches
 		os.system(BLAT_command)
 
 
