@@ -139,9 +139,9 @@ def BuildGraph(fname,transcripts,verbose=False):
 
 	for i in range(0,len(bData)):
 
-		#Check explicitly that there are no gaps
-		if( bData.iloc[i,4] > 0 or bData.iloc[i,6] > 0):
-			continue
+		#Check explicitly that there are no gaps - OBS these "gaps" are actually gaps between blat blocks and not actually gaps within blat blocks as i initially thought
+		#if( bData.iloc[i,4] > 0 or bData.iloc[i,6] > 0):
+		#	continue
 	
 		#Don't allign the transcripts against each other twice...
         	#I.e. BLAT does T1 vs T2 but also T2 vs T1 (which should be the same give or take)
