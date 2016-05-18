@@ -49,6 +49,98 @@ def merge_nodes(lnodes,graph): #Given a list of nodes merge them
 	graph.node[lnodes[0]]['Base'] = seq
 	return(lnodes[0]) #Return Node id of merged node
 
+#Given a transcript find its reverse compliment
+def Reverse_complement(transcript):
+	rev_tran = []
+	for base in transcript:
+		rev_base = ''
+		if(base.lower()=='a'): rev_base = 't'
+		elif(base.lower()=='c'): rev_base = 'g'
+		elif(base.lower()=='t'): rev_base = 'a'
+		else: rev_base = 'c'
+		rev_tran.append(rev_base)
+	return ('').join(rev_tran[::-1]) #Now return the list reversed
+
+
+#Define direction of transcripts in fasta file
+#Loop through table from psl
+#Remove any repeated rows from table and define directionality of transcripts
+def filt_dir(table):
+	pair_list = [] # Which pairs of transcripts have been blatted
+	rem_row = [] #A list of rows to remove from dataframe
+	trandir = {} #A dictionary holding the direcitonality of transcripts, this is defined arbitrarily with respect to whatever comes first in psl file
+	for i in range(0,len(table)):
+
+		########################
+		# Filtering ############
+		########################
+
+		#Don't allign the transcripts against each other twice...
+		#I.e. BLAT does T1 vs T2 but also T2 vs T1 (which should be the same give or take)
+
+                #TName + QName
+		paired = table.iloc[i,13] + table.iloc[i,9]
+		#If that pair of transcripts is already in the table then remove from table
+		if(paired in pair_list):
+			rem_row.append(i)
+			continue
+		else: pair_list.append(table.iloc[i,9]+table.iloc[i,13])
+
+		#Obviously we do not need the rows where we blat a transcript against itself
+		if(table.iloc[i,13] == table.iloc[i,9]):
+			rem_row.append(i)
+			continue
+
+		##################
+		# Directionality #
+		##################
+
+		#Directionality of transcripts
+		tName = table.iloc[i,13]
+		qName = table.iloc[i,9]
+		strand = table.iloc[i,8]
+
+		#Check if direction of one of the transcripts is defined
+		if((tName in trandir) and (qName in trandir)): #Directionality of both transcripts already defined
+			continue
+
+		#Transcript directiionality already defined
+		elif(tName in trandir): 
+			tdir = trandir[tName]
+			if(tdir == strand): #If both the transcript and strand same
+				trandir[qName] = '+'
+			else:
+				trandir[qName] = '-'
+
+		#Query transcript already defined
+		elif(qName in trandir): 
+			qdir = trandir[qName]
+			if(qdir == strand): #If both the query and strand same
+                                trandir[tName] = '+'
+			else:
+				trandir[tName] = '-'
+		
+		#Neither of the sequences defined
+		else:
+			if(strand=='+'): #Both transcripts in the same direction
+				trandir[qName] = '+'
+				trandir[tName] = '+'
+
+			else: #arbitrarily define transcript as postive and query as negative
+				trandir[tName] = '+'
+				trandir[qName] = '-'
+		
+	###############
+	# Removal #####
+	###############
+	#Remove rows where the transcript pair is repeated
+	table = table.drop(table.index[rem_row])		
+
+	return(table,trandir)
+					
+
+	
+
 
 def SuperTran(fname,verbose=False):
 	
@@ -135,8 +227,38 @@ def BuildGraph(fname,transcripts,verbose=False):
 	qName = []
 	tStart = [] #Start co-ordinate of the block in the transcript
 	qStart = [] #Start co-ordinate of the block in query
-	pair_list = [] # Which pairs of transcripts have been blatted
+	trandir = {} # A dictionary defining the directionality of transcripts
 
+	#Filter psl table where two transcripts can have multiple rows (usually because blat does T1 vs T2 then T2 vs T1 later)
+	bData, trandir = filt_dir(bData)
+
+	if(len(bData['strand'].unique()) > 1): #That is we have both pos and neg strands
+		print("Double Stranded Contigs\n")
+
+		#Re-correct the transcripts to be the reverse compliments if one of the transcripts has a negative directionality
+		for key in trandir:
+			if(trandir[key] == '-'):
+				transcripts[key] = Reverse_complement(transcripts[key])
+
+	
+		#Write a fasta file with the contigs all in same direction
+		fcorr = fname.split('.fasta')[0] + "_stranded" + ".fasta"
+		print(fcorr)
+		fc = open(fcorr,"w")
+		for key in transcripts:
+			fc.write(">" + key + "\n")
+			fc.write(transcripts[key]+"\n")
+		fc.close()	
+
+		#Re-BLAT
+		reblat = "./blat %s %s -maxGap=0 -minIdentity=98  %s.psl" %(fcorr,fcorr,fcorr.split('.fasta')[0]) #This gets almost exact matches
+		os.system(reblat)
+		bData = pd.read_table(fcorr.split('.fasta')[0] + '.psl',sep='\t',header = None,names=Header_names,skiprows=5)
+	
+		#Re-filter
+		bData, trandir = filt_dir(bData)
+
+	
 	for i in range(0,len(bData)):
 
 		#Check explicitly that there are no gaps - OBS these "gaps" are actually gaps between blat blocks and not actually gaps within blat blocks as i initially thought
@@ -146,23 +268,23 @@ def BuildGraph(fname,transcripts,verbose=False):
 		#Don't allign the transcripts against each other twice...
         	#I.e. BLAT does T1 vs T2 but also T2 vs T1 (which should be the same give or take)
 
-        	#TName + QName
-		paired = bData.iloc[i,13] + bData.iloc[i,9]
-		if(paired in pair_list): continue
-		else: pair_list.append(bData.iloc[i,9]+bData.iloc[i,13])
 		
-		#Extract thhe info
+		#Extract the info
 		seq=list(transcripts[bData.iloc[i,9]]) #Get sequence from query name
 		block_sizes = (bData.iloc[i,18]).rstrip(',').split(',')
 		qStarts = (bData.iloc[i,19]).rstrip(',').split(',')
 		tStarts = (bData.iloc[i,20]).rstrip(',').split(',')
 
 		for j in range(0,len(qStarts)):
-			block_seq.append(seq[int(qStarts[j]):(int(qStarts[j])+int(block_sizes[j]))])
+			block_seq.append(seq[int(qStarts[j]):(int(qStarts[j])+int(block_sizes[j]))]) #This is purely used for the size of the sequence
 			tName.append(bData.iloc[i,13])
 			tStart.append(int(tStarts[j]))
 			qStart.append(int(qStarts[j]))
 			qName.append(bData.iloc[i,9])
+
+		#OBS
+		#For now assume that there is no contradiction in the directionality (i.e. all blocks in psl are consistent with each contig being in the defined direction relative to each pair)
+		#if(trandir[bData.iloc[i,9]] == '-' and trandir[bData.iloc[i,13]] == '-'	
 
 	if(verbose): print("Constructing and merging nodes in graphs based on Blocks and Transcripts")
 
