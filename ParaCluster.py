@@ -54,8 +54,8 @@ def Para(clustlist):
 	superf = open(write_dir + '/' +'SuperDuper.fasta','w')
 	supgff = open(write_dir + '/' +'SuperDuper.gff','w')
 
-	for i,clust in enumerate(fnames):
-		superf.write('>' + clust + ' Number of transcripts: ' + str(cnts[i]) +  '\n')
+	for i,clust in enumerate(clusters):
+		superf.write('>' + clust + '\n')
 		superf.write(result[i][0] + '\n')
 
 	#Write Super gff
