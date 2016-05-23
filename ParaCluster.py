@@ -56,10 +56,10 @@ def Para(clustlist):
 
 	for i,clust in enumerate(clusters):
 		superf.write('>' + clust + '\n')
-		superf.write(result[i][0] + '\n')
+		superf.write(results[i][0] + '\n')
 
 	#Write Super gff
-	for res in result:
+	for res in results:
         	supgff.write(res[1])
 		
 
@@ -160,10 +160,10 @@ def Split(genome,corsetfile):
 
 		for i,clust in enumerate(fnames):
 			superf.write('>' + clust + ' Number of transcripts: ' + str(cnts[i]) +  '\n')
-			superf.write(result[i][0] + '\n')
+			superf.write(results[i][0] + '\n')
 
 		#Write Super gff
-		for res in result:
+		for res in results:
                         supgff.write(res[1])
 
 		print("SPLIT ---- %s seconds ----" %(time.time()-start_time))
@@ -184,4 +184,3 @@ if __name__ == '__main__':
 		if(len(sys.argv) == 2):
 			clustlist = sys.argv[1]
 			Para(clustlist)
-			#Ser(clustlist)
