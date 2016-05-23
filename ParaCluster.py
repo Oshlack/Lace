@@ -148,10 +148,10 @@ def Split(genome,corsetfile):
 		# BY POOL
 		ncore = multiprocessing.cpu_count()
 		pool = Pool(processes=ncore)
-		results = pool.map_async(worker,fnames)
+		result = pool.map_async(worker,fnames)
 		pool.close()
 		pool.join()
-		result = results.get()
+		results = result.get()
 
 
 		#Write Overall Super Duper Tran
