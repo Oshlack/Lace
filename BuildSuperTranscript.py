@@ -173,7 +173,7 @@ def SuperTran(fname,verbose=False):
 		if(verbose): print("One\n") 
 		seq = next(iter(transcripts.values())) #Python 3 specific codee...
 		#anno = (fname.split('/')[-1]).split('.fasta')[0] + '\t' + 'Chromo' + '\t' + '0' + '\t' + str(len(seq)) + '\t' + '+' + '\n'
-		anno = anno + (fname.split('/')[-1]).split('.fasta')[0] + '\t' + 'SuperTranscript' + '\t' + 'exon' + '\t' + 0 + '\t' + str(len(seq)) + '\t' + '.' + '\t' +'.' + '\t' + '0' + '\t' + '.'  + '\n'
+		anno = (fname.split('/')[-1]).split('.fasta')[0] + '\t' + 'SuperTranscript' + '\t' + 'exon' + '\t' + '0' + '\t' + str(len(seq)) + '\t' + '.' + '\t' +'.' + '\t' + '0' + '\t' + '.'  + '\n'
 
 	else:
 		#Try topo sorting a graph
@@ -183,14 +183,14 @@ def SuperTran(fname,verbose=False):
 		except: #Graph building failed, just take longest transcript or (concatenate all transcripts)
 			temp = 0
 			seq = ''
-			print('FAILED to build graph and topo sort')
-			for val in transcripts:
+			print('FAILED to construct')
+			for val in list(transcripts.values()):
 				if(len(val) > temp):
 					temp = len(val)
 					seq = ''.join(val)
 
 			#anno = (fname.split('/')[-1]).split('.fasta')[0] + '\t' + 'Chromo' + '\t' + '0' + '\t' + str(len(seq)) + '\t' + '+' + '\n'
-			anno = anno + (fname.split('/')[-1]).split('.fasta')[0] + '\t' + 'SuperTranscript' + '\t' + 'exon' + '\t' + 0 + '\t' + str(len(seq)) + '\t' + '.' + '\t' +'.' + '\t' + '0' + '\t' + '.' + '\n'
+			anno = (fname.split('/')[-1]).split('.fasta')[0] + '\t' + 'SuperTranscript' + '\t' + 'exon' + '\t' + '0' + '\t' + str(len(seq)) + '\t' + '.' + '\t' +'.' + '\t' + '0' + '\t' + '.' + '\n'
 	
 	#print("---- %s seconds ----" %(time.time()-start_time))
 	return(seq,anno)
@@ -412,8 +412,6 @@ def BuildGraph(fname,transcripts,verbose=False):
 						node_dict[key][node_dict[key].index(qnid)] = tnid
 
 
-	if(verbose): print("Adding in node edges based on transcripts")
-
 
 	############################################
 	# Simplify Graph and/or find blocks ########
@@ -499,7 +497,7 @@ def BuildGraph(fname,transcripts,verbose=False):
 		base_order = nx.topological_sort(C)
 
 	except nx.NetworkXUnfeasible:
-		print("CYCLESSSSSS!!!!!!")
+		if(verbose): print("CYCLESSSSSS!!!!!!")
 		anno = ''
 		return("CYCLE",anno)
 	
