@@ -8,6 +8,7 @@ import os
 from matplotlib.pyplot import cm
 import seaborn as sns
 from matplotlib import gridspec
+import pickle
 
 ##################################################
 ###### Visualise blocks in SuperTranscript #######
@@ -49,8 +50,12 @@ def Checker(genome):
 	plt.xlabel("Fraction of transcript covered in SuperTranscript")
 	plt.ylabel("Frequency")
 	plt.title(r'$\mathrm{Histogram\ of\ transcript\ buidling\ of\ ST}$')
+	plt.savefig('foo.pdf')
 	plt.show()
-		
+	
+	#Save the dicts as pickle file
+	pickle.dump(frac_covered,open("frac_covered.pkl","wb"))
+	pickle.dump(mapp_frac,open("mapp_frac.pkl","wb"))
 
 def FindMetrics(gene_name):
 
