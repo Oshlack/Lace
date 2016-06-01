@@ -63,6 +63,7 @@ def Visualise(gene_name):
 		size = int(gff_data.iloc[row,4]) - int(gff_data.iloc[row,3])
 		plt.barh(len(transcripts),size,color='#ffc024',left=accum,alpha=0.8)
 		accum=accum+size
+		if(row > 0): plt.axvline(int(gff_data.iloc[row,3]),linestyle='dashed',color='black',linewidth=0.5)
 
 	plot_dict = {}
 	col_dict = {}
@@ -118,6 +119,7 @@ def Visualise(gene_name):
 	ax2.set_yticklabels([])
 	plt.xlabel('Bases')
 	plt.ylabel('Coverage')
+	plt.savefig("Visualise.pdf")
 	plt.show()
 
 if __name__=='__main__':
@@ -125,4 +127,16 @@ if __name__=='__main__':
 		print("Visualisation function requires one argument\n")
 		print("The gene whose super transcripts you wish to visualise\n")
 	else:
+		#Check all the super files are there
+		if(not os.path.isfile(sys.argv[1] + ".fasta")):
+			print("No fasta file for gene/cluster of interest\n")
+			sys.exit()
+		if(not os.path.isfile("SuperDuper.fasta")):
+			print("No fasta file for SuperTranscript\n")
+			sys.exit()
+		if(not os.path.isfile("SuperDuper.gff")):
+			print("No annotation file for SuperTranscript\n")
+			sys.exit()
+			
+
 		Visualise(sys.argv[1])
