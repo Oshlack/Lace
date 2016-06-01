@@ -122,6 +122,21 @@ def Visualise(gene_name):
 	plt.savefig("Visualise.pdf")
 	plt.show()
 
+	###########################################
+	# Create GFF with transcript annotation ###
+	###########################################
+
+	fg = open(gene_name + ".gff","w")
+	#For each blat alignment
+	for j in range(0,len(vData)): 
+		qStarts = vData.iloc[j,19].split(",")
+		blocksizes  = vData.iloc[j,18].split(",")
+		for k in range(0,len(qStarts)-1): #Split qStarts, last in list is simply blank space
+			fg.write(gene_name + '\t' + 'SuperTranscript' + '\t' + 'exon' + '\t' + qStarts[k] + '\t' + str(int(qStarts[k]) + int(blocksizes[k])) + '\t' + '.' + '\t' +'.' + '\t' + '0' + '\t' + 'gene_id "' + gene_name +'"; transcript_id "' + vData.iloc[j,9] + '";'   + '\n')
+	fg.close()
+				
+
+
 if __name__=='__main__':
 	if(len(sys.argv) != 2):
 		print("Visualisation function requires one argument\n")
