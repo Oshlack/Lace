@@ -10,9 +10,9 @@ import seaborn as sns
 from matplotlib import gridspec
 import pickle
 
-##################################################
-###### Visualise blocks in SuperTranscript #######
-##################################################
+################################################################
+###### Visualise blocks and metricise in SuperTranscript #######
+################################################################
 
 def Checker(genome):
 
@@ -26,8 +26,8 @@ def Checker(genome):
 	metrics = {}
 	for gene in genes:
 		#print(gene)
-		mapping,fraction = FindMetrics(gene)
-		metrics[gene] = [mapping,fraction]
+		mapping,fraction,anno = FindMetrics(gene)
+		metrics[gene] = [mapping,fraction,anno]
 
 	#Fraction of genes where we get a one to one mapping
 	mapp_frac = 0
@@ -57,10 +57,17 @@ def Checker(genome):
 	pickle.dump(frac_covered,open("frac_covered.pkl","wb"))
 	pickle.dump(mapp_frac,open("mapp_frac.pkl","wb"))
 
+
+	#Now lets save the annotation to file
+	fg = open("SuperDuperTrans.gff","w")
+	for key in metrics:
+		fg.write(metrics[key][2])
+	fg.close()
+
 def FindMetrics(gene_name):
 
 	#EXTRACT GENE FROM SUPER
-	
+	gene_string=""
 	#Find gene in genome
 	f= open("SuperDuper.fasta","r")
 	for line in f:
@@ -96,8 +103,16 @@ def FindMetrics(gene_name):
 	for i in range(0,len(vData)):		
 		if vData.iloc[i,9] in fraction:  fraction[vData.iloc[i,9]] += (int(vData.iloc[i,12]) - int(vData.iloc[i,11]))/int(vData.iloc[i,10]) #If key already in dictionary sum fractions
 		fraction[vData.iloc[i,9]] = (int(vData.iloc[i,12]) - int(vData.iloc[i,11]))/int(vData.iloc[i,10])
+
+	#Get Annotation of transcripts on SuperTranscript from BLAT
+	anno = ""
+	for j in range(0,len(vData)):
+                qStarts = vData.iloc[j,19].split(",")
+                blocksizes  = vData.iloc[j,18].split(",")
+                for k in range(0,len(qStarts)-1): #Split qStarts, last in list is simply blank space
+                        anno = anno + gene_name + '\t' + 'SuperTranscript' + '\t' + 'exon' + '\t' + qStarts[k] + '\t' + str(int(qStarts[k]) + int(blocksizes[k])) + '\t' + '.' + '\t' +'.' + '\t' + '0' + '\t' + 'gene_id "' + gene_name +'"; transcript_id "' + vData.iloc[j,9] + '";'   + '\n'
 		
-	return(mapping, fraction)
+	return(mapping, fraction, anno)
 
 if __name__=='__main__':
 	if(len(sys.argv) != 2):
