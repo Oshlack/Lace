@@ -133,10 +133,10 @@ def FindMetrics(gene_name):
 	#Get Annotation of transcripts on SuperTranscript from BLAT
 	anno = ""
 	for j in range(0,len(vData)):
-                qStarts = vData.iloc[j,19].split(",")
+                tStarts = vData.iloc[j,20].split(",")
                 blocksizes  = vData.iloc[j,18].split(",")
-                for k in range(0,len(qStarts)-1): #Split qStarts, last in list is simply blank space
-                        anno = anno + gene_name + '\t' + 'SuperTranscript' + '\t' + 'exon' + '\t' + qStarts[k] + '\t' + str(int(qStarts[k]) + int(blocksizes[k])) + '\t' + '.' + '\t' +'.' + '\t' + '0' + '\t' + 'gene_id "' + gene_name +'"; transcript_id "' + vData.iloc[j,9] + '";'   + '\n'
+                for k in range(0,len(tStarts)-1): #Split qStarts, last in list is simply blank space
+                        anno = anno + gene_name + '\t' + 'SuperTranscript' + '\t' + 'exon' + '\t' + str(int(tStarts[k]) +1) + '\t' + str(int(tStarts[k]) + int(blocksizes[k]) + 1) + '\t' + '.' + '\t' +'.' + '\t' + '0' + '\t' + 'gene_id "' + gene_name +'"; transcript_id "' + vData.iloc[j,9] + '";'   + '\n'
 		
 	return(mapping, fraction, anno, compact)
 
