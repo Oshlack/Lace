@@ -9,16 +9,6 @@ from BuildSuperTranscript import SuperTran
 import sys
 import time
 
-#logger = multiprocessing.log_to_stderr()
-#logger.setLevel(multiprocessing.SUBDEBUG)
-
-def info(title):
-	print(title)
-	print('module name:',__name__)
-	if hasattr(os,'getppid'): #only avaliable on Unix
-		print('parent process:',os.getppid())
-	print('process id:',os.getpid())
-
 def worker(fname):
 	seq =''
 	ann = ''
@@ -55,7 +45,8 @@ def Para(clustlist):
 	supgff = open(write_dir + '/' +'SuperDuper.gff','w')
 
 	for i,clust in enumerate(clusters):
-		superf.write('>' + clust + '\n')
+		fn = clust.split("/")[-1]
+		superf.write('>' + fn + '\n')
 		superf.write(results[i][0] + '\n')
 
 	#Write Super gff
@@ -159,7 +150,9 @@ def Split(genome,corsetfile):
 		supgff = open(dir + '/' +'SuperDuper.gff','w')
 
 		for i,clust in enumerate(fnames):
-			superf.write('>' + clust + ' Number of transcripts: ' + str(cnts[i]) +  '\n')
+			#Just use the name of gene, without the preface
+			fn = clust.split("/")[-1]
+			superf.write('>' + fn  + ' Number of transcripts: ' + str(cnts[i]) +  '\n')
 			superf.write(results[i][0] + '\n')
 
 		#Write Super gff
