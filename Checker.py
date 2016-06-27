@@ -22,7 +22,7 @@ def Checker(genome):
 	f = open(sys.argv[1],'r')
 	for line in f:
 		if('>' in line):
-			genes.append((line.split('>')[1]).split("\n")[0])
+			genes.append((line.split('>')[1]).split(" ")[0])
 
 	metrics = {}
 	for gene in genes:
