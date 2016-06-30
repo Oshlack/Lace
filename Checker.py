@@ -1,5 +1,8 @@
 #A script to systematically check for each gene whether the SuperTranscript builder worked ok
-
+import multiprocessing, logging
+from multiprocessing import Pool
+from multiprocessing import Process
+import argparse
 import datetime
 import pandas as pd
 import matplotlib.pyplot as plt
@@ -17,7 +20,7 @@ from matplotlib.backends.backend_pdf import PdfPages
 ###### Visualise blocks and metricise in SuperTranscript #######
 ################################################################
 
-def Checker(genome):
+def Checker(genome,ncore):
 	start_time = time.time()
 	print("Finding list of genes")
 	genes=[]
@@ -25,9 +28,17 @@ def Checker(genome):
 	for line in f:
 		if('>' in line):
 			genes.append((line.split('>')[1]).split("\n")[0])
+
+	# BY POOL
+	pool = Pool(processes=ncore)
+	result = pool.map_async(FindMetrics,genes)
+	pool.close()
+	pool.join()
+	results = result.get()
+
 	metrics = {}
-	for gene in genes:
-		mapping,fraction,anno,compact,ntran = FindMetrics(gene)
+	for i,gene in enumerate(genes):
+		mapping,fraction,anno,compact,ntran = results[0]
 		metrics[gene] = [mapping,fraction,anno,compact,ntran]
 
 	#Fraction of genes where we get a one to one mapping
@@ -182,8 +193,11 @@ def FindMetrics(gene_name):
 	return(mapping, fraction, anno, compact,ntran)
 
 if __name__=='__main__':
-	if(len(sys.argv) != 2):
-		print("Checker function requires one argument")
-		print("The genome whose super transcripts you wish to quality check")
-	else:
-		Checker(sys.argv[1])
+	#Make argument parser
+	parser = argparse.ArgumentParser()
+
+        #Add Arguments
+	parser.add_argument("SuperFile",help="The name of the SuperDuper.fasta file created by SuperTranscript")
+	parser.add_argument("--cores",help="The number of cores you wish to run the job on (default = 4)",default=4,type=int)
+	args= parser.parse_args()
+	Checker(args.SuperFile,args.cores)

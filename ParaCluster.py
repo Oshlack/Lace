@@ -148,6 +148,8 @@ def Split(genome,corsetfile,ncore):
                         supgff.write(res[1])
 
 		print("BUILT SUPERTRANSCRIPTS ---- %s seconds ----" %(time.time()-start_time))
+
+
 	
 if __name__ == '__main__':
 
@@ -166,7 +168,7 @@ if __name__ == '__main__':
 
 	if(args.alternate):
 		print("Making Alternate Annotation and checks")
-		Checker('SuperDuper.fasta')
+		Checker('SuperDuper.fasta',args.cores)
 		print('Done')
 
 	if(args.clear):
