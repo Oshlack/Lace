@@ -1,15 +1,17 @@
 #A script to systematically check for each gene whether the SuperTranscript builder worked ok
 
+import datetime
 import pandas as pd
 import matplotlib.pyplot as plt
 import numpy as np
 import sys
 import os
 from matplotlib.pyplot import cm
-import seaborn as sns
+plt.style.use('seaborn-deep')
 from matplotlib import gridspec
 import pickle
 import time
+from matplotlib.backends.backend_pdf import PdfPages
 
 ################################################################
 ###### Visualise blocks and metricise in SuperTranscript #######
@@ -25,49 +27,89 @@ def Checker(genome):
 			genes.append((line.split('>')[1]).split("\n")[0])
 	metrics = {}
 	for gene in genes:
-		mapping,fraction,anno,compact = FindMetrics(gene)
-		metrics[gene] = [mapping,fraction,anno,compact]
+		mapping,fraction,anno,compact,ntran = FindMetrics(gene)
+		metrics[gene] = [mapping,fraction,anno,compact,ntran]
 
 	#Fraction of genes where we get a one to one mapping
-	mapp_frac = 0
+	mapp_frac = []
 	frac_covered = []
 	compactify = []
+	trans = []
 	for key in metrics:
-		mapp_frac += metrics[key][0]
-		compactify.append(metrics[key][3])	
+		mapp_frac.append(metrics[key][0])
+		compactify.append(metrics[key][3])
+		trans.append(metrics[key][4])	
 		for key2 in metrics[key][1]:
 			frac_covered.append(metrics[key][1][key2])
 
-	mapp_frac = mapp_frac / len(genes)
+	#mapp_frac = mapp_frac / len(genes)
 	frac_covered = np.asarray(frac_covered)
 
+	#Calculate the number of clusters with a one to one mapping with >1 transcript
+	multiclust = 0
+	mapp_mult=0
+	for i in range(0,len(trans)):
+		if(trans[i] > 1): #More than 1 contig
+			multiclust += 1
+			mapp_mult += mapp_frac[i]
+		
+	mapp_mult=mapp_mult/multiclust
 
-	#Now lets pring some info        
-	print("Fraction of genes with a one to one mapping:")
-	print(mapp_frac)
+	with PdfPages('LogOut.pdf') as pdf:
 
-	#Plot the distribution for metric 2
-	n, bins, patches = plt.hist(frac_covered,20,normed=1,facecolor='green',alpha=0.75)
-	plt.xlabel("Fraction of transcript covered in SuperTranscript")
-	plt.ylabel("Frequency")
-	plt.title(r'$\mathrm{Histogram\ of\ transcript\ buidling\ of\ ST}$')
-	plt.savefig('Frac_covered.pdf')
-	#plt.show()
+		#Now lets pring some info
+		p1 = plt.barh(0,mapp_mult,alpha=0.75,label='Fully Mapped',color='#55A868')
+		p2 = plt.barh(0,(1.-mapp_mult),alpha=0.75,left=mapp_mult,label='Partially Mapped',color='#4C72B0')
+		plt.yticks([],[])
+		plt.title('Contiguous Mapping of transcripts to SuperTranscript per Cluster')
+		plt.legend(loc='best',frameon=False)
+		plt.xlim(0.,1.)
+		plt.ylim(0,0.5)
+		pdf.savefig()
+		plt.close()
 
-	#Plot Distribution for Metric 3
-	compactified = np.asarray(compactify)
-	print(compactified)
-	n,bins,patches = plt.hist(compactified,10,facecolor='blue',alpha=0.75)
-	plt.xlabel("Sum of bases in Transcripts/ Super Transcript Length")
-	plt.ylabel("Frequency")
-	plt.savefig('Compactify.pdf')
-	#plt.show()
-	
-	#Save the dicts as pickle file
-	pickle.dump(frac_covered,open("frac_covered.pkl","wb"))
-	pickle.dump(mapp_frac,open("mapp_frac.pkl","wb"))
-	pickle.dump(compactified,open("compactified.pkl","wb"))
+		#Visualise the number of transcripts per gene
+		tt = np.asarray(trans)
+		cbins= [1,2,3,4,5,6,7,8,9,10,20,500]
+		h = np.histogram(tt,cbins)
+		plt.bar(range(len(cbins)-1),h[0],alpha=0.75,width=1,color='#C44E52')
+		xlab=['1','2','3','4','5','6','7','8','9','10','11-20','21-500']
+		plt.xticks([0.5,1.5,2.5,3.5,4.5,5.5,6.5,7.5,8.5,9.5,10.5,11.5],xlab)
+		plt.xlabel("Number of transcripts in cluster")
+		plt.ylabel("Frequency")
+		plt.title('Distribution of transcripts per cluster')
+		pdf.savefig()
+		plt.close()
 
+		#Plot the distribution for metric 2
+		n, bins, patches = plt.hist(frac_covered,20,alpha=0.75,range=[0,1],color='#8172B2')
+		plt.xlabel("Fraction of transcript covered in SuperTranscript")
+		plt.ylabel("Frequency")
+		plt.title('Fraction of transcripts encroporated into SuperTranscript')
+		pdf.savefig()
+		plt.close()
+
+		#Plot Distribution for Metric 3
+		compactified = np.asarray(compactify)
+		#print(compactified)
+		n,bins,patches = plt.hist(compactified,20,alpha=0.75,range=[0,1],color='#4C72B0')
+		plt.xlabel("Sum of bases in Transcripts/ Super Transcript Length")
+		plt.ylabel("Frequency")
+		plt.title("Compactifcation of transcripts in SuperTranscript")
+		pdf.savefig()
+		plt.close
+
+		# We can also set the file's metadata via the PdfPages object:
+		d = pdf.infodict()
+		d['Title'] = 'Metrics for the SuperTranscript Build'
+		d['Author'] = u'Anthony Hawkins'
+		d['ModDate'] = datetime.datetime.today()
+
+	#Save the metrics as pickle file
+	#pickle.dump(frac_covered,open("frac_covered.pkl","wb"))
+	#pickle.dump(mapp_frac,open("mapp_frac.pkl","wb"))
+	#pickle.dump(compactified,open("compactified.pkl","wb"))
+	pickle.dump(metrics,open("Metrics.pkl","wb"))
 
 	#Now lets save the annotation to file
 	fg = open("SuperDuperTrans.gff","w")
@@ -110,6 +152,7 @@ def FindMetrics(gene_name):
 	#Metric 1 - If each transcript has a one to one mapping with ST then we should have as many lines as transcripts
 	mapping = 0
 	if(len(transcripts) == len(vData)): mapping =1
+	ntran = len(transcripts) #Number of transcripts in gene
 
 	#Metric 2 - The fraction fo each transcript mapped (i.e the number of bases)
 	fraction = {} # Dictonary of fraction mapped
@@ -136,7 +179,7 @@ def FindMetrics(gene_name):
                 for k in range(0,len(tStarts)-1): #Split qStarts, last in list is simply blank space
                         anno = anno + gene_name + '\t' + 'SuperTranscript' + '\t' + 'exon' + '\t' + str(int(tStarts[k]) +1) + '\t' + str(int(tStarts[k]) + int(blocksizes[k]) + 1) + '\t' + '.' + '\t' +'.' + '\t' + '0' + '\t' + 'gene_id "' + gene_name +'"; transcript_id "' + vData.iloc[j,9] + '";'   + '\n'
 		
-	return(mapping, fraction, anno, compact)
+	return(mapping, fraction, anno, compact,ntran)
 
 if __name__=='__main__':
 	if(len(sys.argv) != 2):
