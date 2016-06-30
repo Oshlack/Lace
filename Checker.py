@@ -19,14 +19,12 @@ def Checker(genome):
 	start_time = time.time()
 	print("Finding list of genes")
 	genes=[]
-	f = open(sys.argv[1],'r')
+	f = open(genome,'r')
 	for line in f:
 		if('>' in line):
-			genes.append((line.split('>')[1]).split(" ")[0])
-
+			genes.append((line.split('>')[1]).split("\n")[0])
 	metrics = {}
 	for gene in genes:
-		#print(gene)
 		mapping,fraction,anno,compact = FindMetrics(gene)
 		metrics[gene] = [mapping,fraction,anno,compact]
 
@@ -54,7 +52,7 @@ def Checker(genome):
 	plt.ylabel("Frequency")
 	plt.title(r'$\mathrm{Histogram\ of\ transcript\ buidling\ of\ ST}$')
 	plt.savefig('Frac_covered.pdf')
-	plt.show()
+	#plt.show()
 
 	#Plot Distribution for Metric 3
 	compactified = np.asarray(compactify)
@@ -63,7 +61,7 @@ def Checker(genome):
 	plt.xlabel("Sum of bases in Transcripts/ Super Transcript Length")
 	plt.ylabel("Frequency")
 	plt.savefig('Compactify.pdf')
-	plt.show()
+	#plt.show()
 	
 	#Save the dicts as pickle file
 	pickle.dump(frac_covered,open("frac_covered.pkl","wb"))

@@ -8,6 +8,8 @@ import os
 from BuildSuperTranscript import SuperTran
 import sys
 import time
+import argparse
+from Checker import Checker
 
 def worker(fname):
 	seq =''
@@ -18,44 +20,37 @@ def worker(fname):
 		print("Failed:", fname)
 	return seq,ann
 
-def Para(clustlist):
-	clusters = []
-	if(os.path.isfile(clustlist)):
-		f = open(clustlist,'r')
-		for line in f:
-			clusters.append(line.split("\n")[0])
+#A little function to move all .fasta and .psl files created into a sub directory to tidy the space
+def Clean(corsetfile):
+	
+	#First find the name of all the genes which files have been created for
+	if(os.path.isfile(corsetfile)):
+		#Make tidy directory
+		dir = os.path.dirname(corsetfile)
+		if(dir==''): dir='.'
+		mcom = 'mkdir %s/InterFiles' %(dir)
+		os.system(mcom)	
+	
 
-	else:
-		print("Input list not found, exiting...")
-		sys.exit()
-
-	# BY POOL
-	ncore = multiprocessing.cpu_count()
-	pool = Pool(processes=ncore)
-	result= pool.map_async(SuperTran,clusters) 
-	pool.close()
-
-	results = result.get()
-
-	write_dir = os.path.dirname(clustlist)
-	if(write_dir == ''): write_dir = '.'
-
-	#Write Overall Super Duper Tran
-	superf = open(write_dir + '/' +'SuperDuper.fasta','w')
-	supgff = open(write_dir + '/' +'SuperDuper.gff','w')
-
-	for i,clust in enumerate(clusters):
-		fn = clust.split("/")[-1]
-		superf.write('>' + fn + '\n')
-		superf.write(results[i][0] + '\n')
-
-	#Write Super gff
-	for res in results:
-        	supgff.write(res[1])
+		print("Moving all fasta and psl files created to:")
+		print("InterFiles/")
+		clusters = []
+		corse = open(corsetfile,'r')
+		for line in corse:
+			clust = line.split()[1].rstrip('/n')
+			if(clust not in clusters): clusters.append(clust)
 		
+		#Now move all the fasta and psl files
+		for clust in clusters: 
+			mcom = 'mv %s/%s.fasta %s/InterFiles' %(dir,clust,dir)
+			os.system(mcom)
+			mcom = 'mv %s/%s.psl %s/InterFiles' %(dir,clust,dir)
+			os.system(mcom)
+	else:
+		print("Not a real file, failed to clean")
 
 #Split fasta file into genes first then parallelise the BLAT for the different genes
-def Split(genome,corsetfile):
+def Split(genome,corsetfile,ncore):
 	start_time = time.time()
 
 	#Find working directory
@@ -88,11 +83,9 @@ def Split(genome,corsetfile):
 		transcripts = {}
 		geneid = {}
 		transid ={}
-
 		for line in fT:
 			if(">" in line): #Name of
 				tag = (line.split()[0]).lstrip('>')
-
 				transcripts[tag] = ''
 	
 				#Assign names
@@ -108,13 +101,6 @@ def Split(genome,corsetfile):
 
 		cnts = []
 		for gene in gene_list:
-
-			#Count number of transcripts assigned to a cluster
-			cnt =0
-			for val in cluster.values():
-				if(val == gene): cnt = cnt + 1
-			cnts.append(cnt)
-
 			fn = dir + '/' + gene + '.fasta' #General		
 
 			if(os.path.isfile(fn)): continue	#If already file
@@ -128,7 +114,7 @@ def Split(genome,corsetfile):
 			f.close()
 
 		#Now submit Build Super Transcript for each gene in parallel
-		print("Now BLATTing each gene...")
+		print("Now Building SuperTranscript for each gene...")
 		jobs = []
 
 		fnames = []
@@ -136,8 +122,8 @@ def Split(genome,corsetfile):
 			fname = dir + '/' + gene + '.fasta'
 			fnames.append(fname)
 
-		# BY POOL
-		ncore = multiprocessing.cpu_count()
+		# BY POOL		
+		#ncore = 4
 		pool = Pool(processes=ncore)
 		result = pool.map_async(worker,fnames)
 		pool.close()
@@ -152,7 +138,9 @@ def Split(genome,corsetfile):
 		for i,clust in enumerate(fnames):
 			#Just use the name of gene, without the preface
 			fn = clust.split("/")[-1]
-			superf.write('>' + fn  + ' Number of transcripts: ' + str(cnts[i]) +  '\n')
+			fn = fn.split('.fasta')[0]
+			#superf.write('>' + fn  + ' Number of transcripts: ' + str(cnts[i]) +  '\n')
+			superf.write('>' + fn + '\n'  )
 			superf.write(results[i][0] + '\n')
 
 		#Write Super gff
@@ -163,17 +151,25 @@ def Split(genome,corsetfile):
 	
 if __name__ == '__main__':
 
-	if(len(sys.argv) == 1):
-		print("Here we need an input fasta file and an input corset file")
-		print("Or a list of fasta files in a text file")
-		sys.exit()
+	#Make argument parser
+	parser = argparse.ArgumentParser()
 
-	else:
-		if(len(sys.argv) == 3):
-			genome = sys.argv[1]
-			corset = sys.argv[2]
-			Split(genome,corset)
+	#Add Arguments
+	parser.add_argument("GenomeFile",help="The name of the fasta file containing all transcripts")
+	parser.add_argument("ClusterFile",help="The name of the text file with the transcript to cluster mapping")
+	parser.add_argument("--cores",help="The number of cores you wish to run the job on (default = 4)",default=4,type=int)
+	parser.add_argument("--alternate","-aa",help="Create alternate annotations and create metrics on success of SuperTranscript Building",action='store_true')
+	parser.add_argument("--clear","-c",help="Clear intermediate files after processing",action='store_true')
+	args= parser.parse_args()
 
-		if(len(sys.argv) == 2):
-			clustlist = sys.argv[1]
-			Para(clustlist)
+	Split(args.GenomeFile,args.ClusterFile,args.cores)
+
+	if(args.alternate):
+		print("Making Alternate Annotation and checks")
+		Checker('SuperDuper.fasta')
+		print('Done')
+
+	if(args.clear):
+		print("Clearing all extraneous files")
+		Clean(args.ClusterFile)
+		print("Done")
