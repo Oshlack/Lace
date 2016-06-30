@@ -74,7 +74,7 @@ def Checker(genome):
 	for key in metrics:
 		fg.write(metrics[key][2])
 	fg.close()
-	print("---- %s seconds ----" %(time.time()-start_time))
+	print("ANNOCHECKED ---- %s seconds ----" %(time.time()-start_time))
 	
 def FindMetrics(gene_name):
 

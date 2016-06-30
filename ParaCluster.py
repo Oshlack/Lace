@@ -147,7 +147,7 @@ def Split(genome,corsetfile,ncore):
 		for res in results:
                         supgff.write(res[1])
 
-		print("SPLIT ---- %s seconds ----" %(time.time()-start_time))
+		print("BUILT SUPERTRANSCRIPTS ---- %s seconds ----" %(time.time()-start_time))
 	
 if __name__ == '__main__':
 
