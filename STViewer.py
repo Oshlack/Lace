@@ -1,12 +1,12 @@
 #Visualise a given gene in your super transcript
-
+import argparse
 import pandas as pd
 import matplotlib.pyplot as plt
+plt.style.use('seaborn-white')
 import numpy as np
 import sys
 import os
 from matplotlib.pyplot import cm
-import seaborn as sns
 from matplotlib import gridspec
 
 ##################################################
@@ -112,7 +112,7 @@ def Visualise(gene_name):
 	#For a super block, how many transcripts cover that area....
 	ax2=plt.subplot(gs[1],sharex=ax1)
 	x = np.arange(ST_length)
-	plt.bar(x,coverage,color='slategray',alpha=0.7)
+	plt.bar(x,coverage,alpha=0.7)
 	plt.xlim([0,ST_length+1])
 
 	#Fix x-axes
@@ -138,20 +138,20 @@ def Visualise(gene_name):
 
 
 if __name__=='__main__':
-	if(len(sys.argv) != 2):
-		print("Visualisation function requires one argument\n")
-		print("The gene whose super transcripts you wish to visualise\n")
-	else:
-		#Check all the super files are there
-		if(not os.path.isfile(sys.argv[1] + ".fasta")):
-			print("No fasta file for gene/cluster of interest\n")
-			sys.exit()
-		if(not os.path.isfile("SuperDuper.fasta")):
-			print("No fasta file for SuperTranscript\n")
-			sys.exit()
-		if(not os.path.isfile("SuperDuper.gff")):
-			print("No annotation file for SuperTranscript\n")
-			sys.exit()
-			
+	#Make argument parser
+        parser = argparse.ArgumentParser()
 
-		Visualise(sys.argv[1])
+        #Add Arguments
+        parser.add_argument("GeneName",help="The name of the gene whom you wish to view")
+        args= parser.parse_args()
+        if(not os.path.isfile(args.GeneName + ".fasta")):
+                print("No fasta file for gene/cluster of interest\n")
+                sys.exit()
+        if(not os.path.isfile("SuperDuper.fasta")):
+                print("No fasta file for SuperTranscript\n")
+                sys.exit()
+        if(not os.path.isfile("SuperDuper.gff")):
+                print("No annotation file for SuperTranscript\n")
+                sys.exit()
+
+        Visualise(args.GeneName)
