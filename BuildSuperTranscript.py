@@ -177,7 +177,7 @@ def SuperTran(fname,verbose=False):
 	if(len(transcripts) == 1):
 		if(verbose): print("One\n") 
 		seq = next(iter(transcripts.values())) #Python 3 specific codee...
-		anno = (fname.split('/')[-1]).split('.fasta')[0] + '\t' + 'SuperTranscript' + '\t' + 'exon' + '\t' + '1' + '\t' + str(len(seq) + 1) + '\t' + '.' + '\t' +'.' + '\t' + '0' + '\t' + '.'  + '\n'
+		anno = (fname.split('/')[-1]).split('.fasta')[0] + '\t' + 'SuperTranscript' + '\t' + 'exon' + '\t' + '1' + '\t' + str(len(seq)) + '\t' + '.' + '\t' +'.' + '\t' + '0' + '\t' + '.'  + '\n'
 
 	else:
 		#Try topo sorting a graph
@@ -193,7 +193,7 @@ def SuperTran(fname,verbose=False):
 					temp = len(val)
 					seq = ''.join(val)
 
-			anno = (fname.split('/')[-1]).split('.fasta')[0] + '\t' + 'SuperTranscript' + '\t' + 'exon' + '\t' + '1' + '\t' + str(len(seq)+1) + '\t' + '.' + '\t' +'.' + '\t' + '0' + '\t' + '.' + '\n'
+			anno = (fname.split('/')[-1]).split('.fasta')[0] + '\t' + 'SuperTranscript' + '\t' + 'exon' + '\t' + '1' + '\t' + str(len(seq)) + '\t' + '.' + '\t' +'.' + '\t' + '0' + '\t' + '.' + '\n'
 	
 	return(seq,anno,whirl_status,transcript_status)
 

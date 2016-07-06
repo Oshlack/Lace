@@ -66,7 +66,7 @@ def Checker(genome,ncore):
 			multiclust += 1
 			mapp_mult += mapp_frac[i]
 		
-	mapp_mult=mapp_mult/multiclust
+	if(multiclust>0): mapp_mult=mapp_mult/multiclust
 
 	with PdfPages('LogOut.pdf') as pdf:
 
@@ -110,16 +110,16 @@ def Checker(genome,ncore):
 		plt.ylabel("Frequency")
 		plt.title("Compactifcation of transcripts in SuperTranscript")
 		pdf.savefig()
-		plt.close
+		plt.close()
 
 		#Save also the whirl info
 		whirls = np.asarray(whirls)
-		n,bins,patches = plt.hist(whirls,10,alpha=0.75,range=[0,10],color='#4C72B0')
+		n,bins,patches = plt.hist(whirls,10,alpha=0.75,range=[0,10],color='#8172B2')
 		plt.xlabel("Number of whirls in cluster")
 		plt.ylabel("Frequency")
 		plt.title("General Whirl Statistics")
 		pdf.savefig()
-		plt.close
+		plt.close()
 
 
 		# We can also set the file's metadata via the PdfPages object:
@@ -129,9 +129,6 @@ def Checker(genome,ncore):
 		d['ModDate'] = datetime.datetime.today()
 
 	#Save the metrics as pickle file
-	#pickle.dump(frac_covered,open("frac_covered.pkl","wb"))
-	#pickle.dump(mapp_frac,open("mapp_frac.pkl","wb"))
-	#pickle.dump(compactified,open("compactified.pkl","wb"))
 	pickle.dump(metrics,open("Metrics.pkl","wb"))
 
 	#Now lets save the annotation to file
@@ -174,17 +171,20 @@ def FindMetrics(gene_name):
 	#Make list of transcripts
 	transcripts = np.unique(list(vData['Q name']))
 	transcript_lengths = np.unique(list(vData['Q size']))
+	ntran = len(transcripts)
 
-	#Metric 1 - If each transcript has a one to one mapping with ST then we should have as many lines as transcripts
+	#Metric 1 - Check for each transcript whether or not there is a row in the psl where the transcript maps at least 95% to the SuperTranscript
 	mapping = 0
-	if(len(transcripts) == len(vData)): mapping =1
-	ntran = len(transcripts) #Number of transcripts in gene
+	tran_map = 0
 
 	#Metric 2 - The fraction fo each transcript mapped (i.e the number of bases)
 	fraction = {} # Dictonary of fraction mapped
 	for i in range(0,len(vData)):		
 		if vData.iloc[i,9] in fraction:  fraction[vData.iloc[i,9]] += (int(vData.iloc[i,12]) - int(vData.iloc[i,11]))/int(vData.iloc[i,10]) #If key already in dictionary sum fractions
 		fraction[vData.iloc[i,9]] = (int(vData.iloc[i,12]) - int(vData.iloc[i,11]))/int(vData.iloc[i,10])
+		if(vData.iloc[i,0] >= 0.95*vData.iloc[i,10]): tran_map=tran_map+1 #Metric1
+
+	if(tran_map == ntran): mapping =1
 
 	#Metric 3 - How compactified is the super transcript compared to reference
 	tot_trans = 0
@@ -203,7 +203,7 @@ def FindMetrics(gene_name):
                 tStarts = vData.iloc[j,20].split(",")
                 blocksizes  = vData.iloc[j,18].split(",")
                 for k in range(0,len(tStarts)-1): #Split qStarts, last in list is simply blank space
-                        anno = anno + gene_name + '\t' + 'SuperTranscript' + '\t' + 'exon' + '\t' + str(int(tStarts[k]) +1) + '\t' + str(int(tStarts[k]) + int(blocksizes[k]) + 1) + '\t' + '.' + '\t' +'.' + '\t' + '0' + '\t' + 'gene_id "' + gene_name +'"; transcript_id "' + vData.iloc[j,9] + '";'   + '\n'
+                        anno = anno + gene_name + '\t' + 'SuperTranscript' + '\t' + 'exon' + '\t' + str(int(tStarts[k]) +1) + '\t' + str(int(tStarts[k]) + int(blocksizes[k])) + '\t' + '.' + '\t' +'.' + '\t' + '0' + '\t' + 'gene_id "' + gene_name +'"; transcript_id "' + vData.iloc[j,9] + '";'   + '\n'
 
 	#Remove the psl and fasta file needed for the blat
 	dcom='rm Super_%s.fasta' %(gene_name)
