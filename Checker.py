@@ -24,10 +24,12 @@ def Checker(genome,ncore):
 	start_time = time.time()
 	print("Finding list of genes")
 	genes=[]
+	whirls=[]
 	f = open(genome,'r')
 	for line in f:
 		if('>' in line):
-			genes.append((line.split('>')[1]).split("\n")[0])
+			genes.append((line.split('>')[1]).split(" ")[0])
+			whirls.append(int((line.split('>')[1]).split(":")[-1]))
 
 	# BY POOL
 	pool = Pool(processes=ncore)
@@ -38,7 +40,7 @@ def Checker(genome,ncore):
 
 	metrics = {}
 	for i,gene in enumerate(genes):
-		mapping,fraction,anno,compact,ntran = results[0]
+		mapping,fraction,anno,compact,ntran = results[i]
 		metrics[gene] = [mapping,fraction,anno,compact,ntran]
 
 	#Fraction of genes where we get a one to one mapping
@@ -104,11 +106,21 @@ def Checker(genome,ncore):
 		compactified = np.asarray(compactify)
 		#print(compactified)
 		n,bins,patches = plt.hist(compactified,20,alpha=0.75,range=[0,1],color='#4C72B0')
-		plt.xlabel("Sum of bases in Transcripts/ Super Transcript Length")
+		plt.xlabel("Super Transcript Length/Sum of bases in Transcripts")
 		plt.ylabel("Frequency")
 		plt.title("Compactifcation of transcripts in SuperTranscript")
 		pdf.savefig()
 		plt.close
+
+		#Save also the whirl info
+		whirls = np.asarray(whirls)
+		n,bins,patches = plt.hist(whirls,10,alpha=0.75,range=[0,10],color='#4C72B0')
+		plt.xlabel("Number of whirls in cluster")
+		plt.ylabel("Frequency")
+		plt.title("General Whirl Statistics")
+		pdf.savefig()
+		plt.close
+
 
 		# We can also set the file's metadata via the PdfPages object:
 		d = pdf.infodict()
@@ -136,12 +148,14 @@ def FindMetrics(gene_name):
 	#Find gene in genome
 	f= open("SuperDuper.fasta","r")
 	for line in f:
-		if(gene_name in line):
-			gene_string=next(f)
-			break
+		if('>' in line):
+			if( gene_name == (line.split('>')[1]).split(" ")[0]):
+				gene_string=next(f)
+				break
 	f.close()
 
-	fs= open("Super.fasta","w")
+	fgf = "Super_" + str(gene_name) + ".fasta"
+	fs= open(fgf,"w") 
 	fs.write(">" + gene_name + "\n")
 	fs.write(gene_string)
 	fs.close()
@@ -149,12 +163,13 @@ def FindMetrics(gene_name):
 
 	#Match transcripts to super transcript
 	print("Producing match to super transcript")
-	BLAT_command = "./blat Super.fasta %s.fasta supercomp.psl" %(gene_name)
+	BLAT_command = "./blat Super_%s.fasta %s.fasta super_%s.psl" %(gene_name,gene_name,gene_name)
 	os.system(BLAT_command)
 
 	#First read in BLAT output:
 	Header_names = ['match','mismatch','rep.','N\'s','Q gap count','Q gap bases','T gap count','T gap bases','strand','Q name','Q size','Q start','Q end','T name','T size','T start','T end','block count','blocksizes','qStarts','tStarts']
-	vData = pd.read_table('supercomp.psl',sep='\t',header = None,names=Header_names,skiprows=5)
+	fgp = 'super_'+str(gene_name)+'.psl'
+	vData = pd.read_table(fgp,sep='\t',header = None,names=Header_names,skiprows=5) 
 
 	#Make list of transcripts
 	transcripts = np.unique(list(vData['Q name']))
@@ -189,6 +204,12 @@ def FindMetrics(gene_name):
                 blocksizes  = vData.iloc[j,18].split(",")
                 for k in range(0,len(tStarts)-1): #Split qStarts, last in list is simply blank space
                         anno = anno + gene_name + '\t' + 'SuperTranscript' + '\t' + 'exon' + '\t' + str(int(tStarts[k]) +1) + '\t' + str(int(tStarts[k]) + int(blocksizes[k]) + 1) + '\t' + '.' + '\t' +'.' + '\t' + '0' + '\t' + 'gene_id "' + gene_name +'"; transcript_id "' + vData.iloc[j,9] + '";'   + '\n'
+
+	#Remove the psl and fasta file needed for the blat
+	dcom='rm Super_%s.fasta' %(gene_name)
+	os.system(dcom)
+	dcom = 'rm super_%s.psl' %(gene_name)
+	os.system(dcom)
 		
 	return(mapping, fraction, anno, compact,ntran)
 

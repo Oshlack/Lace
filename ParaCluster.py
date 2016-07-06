@@ -14,11 +14,12 @@ from Checker import Checker
 def worker(fname):
 	seq =''
 	ann = ''
+	whirl_status=0
 	try:
-		seq,ann = SuperTran(fname)
+		seq,ann,whirl_status,transcript_status = SuperTran(fname)
 	except:
 		print("Failed:", fname)
-	return seq,ann
+	return seq,ann,whirl_status,transcript_status
 
 #A little function to move all .fasta and .psl files created into a sub directory to tidy the space
 def Clean(corsetfile):
@@ -69,9 +70,8 @@ def Split(genome,corsetfile,ncore):
 		for line in corse:
 			tran = line.split()[0]	
 			clust = line.split()[1].rstrip('/n')
-			clust = clust.replace('/','-')
+			#clust = clust.replace('/','-')
 			cluster[tran] = clust			
-
 
 	#Now loop through fasta file
 	if(os.path.isfile(genome)):
@@ -102,7 +102,6 @@ def Split(genome,corsetfile,ncore):
 		cnts = []
 		for gene in gene_list:
 			fn = dir + '/' + gene + '.fasta' #General		
-
 			if(os.path.isfile(fn)): continue	#If already file
 			
 
@@ -140,7 +139,8 @@ def Split(genome,corsetfile,ncore):
 			fn = clust.split("/")[-1]
 			fn = fn.split('.fasta')[0]
 			#superf.write('>' + fn  + ' Number of transcripts: ' + str(cnts[i]) +  '\n')
-			superf.write('>' + fn + '\n'  )
+			superf.write('>' + fn  + ' NoTrans:' + str(results[i][3]) + ',Whirls:' + str(results[i][2])  + '\n')
+			#superf.write('>' + fn + '\n'  )
 			superf.write(results[i][0] + '\n')
 
 		#Write Super gff

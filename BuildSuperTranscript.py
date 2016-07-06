@@ -68,7 +68,9 @@ def Reverse_complement(transcript):
 def filt_dir(table):
 	pair_list = [] # Which pairs of transcripts have been blatted
 	rem_row = [] #A list of rows to remove from dataframe
-	trandir = {} #A dictionary holding the direcitonality of transcripts, this is defined arbitrarily with respect to whatever comes first in psl file
+	trandir = {} #A dictionary holding the directionality of transcripts, this is defined arbitrarily with respect to whatever comes first in psl file
+
+
 	for i in range(0,len(table)):
 
 		########################
@@ -168,17 +170,19 @@ def SuperTran(fname,verbose=False):
 
 	seq = ''
 
+	transcript_status = len(transcripts)
+	whirl_status = 0
+
 	#If there is only one transcript in this file, then simply that transcript is the super transcript
 	if(len(transcripts) == 1):
 		if(verbose): print("One\n") 
 		seq = next(iter(transcripts.values())) #Python 3 specific codee...
-		#anno = (fname.split('/')[-1]).split('.fasta')[0] + '\t' + 'Chromo' + '\t' + '0' + '\t' + str(len(seq)) + '\t' + '+' + '\n'
 		anno = (fname.split('/')[-1]).split('.fasta')[0] + '\t' + 'SuperTranscript' + '\t' + 'exon' + '\t' + '1' + '\t' + str(len(seq) + 1) + '\t' + '.' + '\t' +'.' + '\t' + '0' + '\t' + '.'  + '\n'
 
 	else:
 		#Try topo sorting a graph
 		try:
-			seq, anno = BuildGraph(fname,transcripts,verbose)
+			seq, anno, whirl_status  = BuildGraph(fname,transcripts,verbose)
 
 		except: #Graph building failed, just take longest transcript or (concatenate all transcripts)
 			temp = 0
@@ -189,11 +193,9 @@ def SuperTran(fname,verbose=False):
 					temp = len(val)
 					seq = ''.join(val)
 
-			#anno = (fname.split('/')[-1]).split('.fasta')[0] + '\t' + 'Chromo' + '\t' + '0' + '\t' + str(len(seq)) + '\t' + '+' + '\n'
 			anno = (fname.split('/')[-1]).split('.fasta')[0] + '\t' + 'SuperTranscript' + '\t' + 'exon' + '\t' + '1' + '\t' + str(len(seq)+1) + '\t' + '.' + '\t' +'.' + '\t' + '0' + '\t' + '.' + '\n'
 	
-	#print("---- %s seconds ----" %(time.time()-start_time))
-	return(seq,anno)
+	return(seq,anno,whirl_status,transcript_status)
 
 def BuildGraph(fname,transcripts,verbose=False):
 	# A Function to build a bruijn graph/splice node graph based on the transcripts assigned to a given cluster
@@ -209,7 +211,8 @@ def BuildGraph(fname,transcripts,verbose=False):
 	#This may well be changed/ skipped/ parallelised
 	if(not os.path.isfile(fname.split('.fasta')[0] + '.psl')):
 		#BLAT_command = "./blat %s %s -maxGap=0 -minIdentity=100 -maxIntron=0 %s.psl" %(fname,fname,fname.split('.fasta')[0]) #This gets almost exact matches
-		BLAT_command = "./blat %s %s -maxGap=0 -minIdentity=98  %s.psl" %(fname,fname,fname.split('.fasta')[0]) #This gets almost exact matches
+		#BLAT_command = "./blat %s %s -maxGap=0 -minIdentity=98  %s.psl" %(fname,fname,fname.split('.fasta')[0]) #This gets almost exact matches
+		BLAT_command = "./blat %s %s -minIdentity=98  %s.psl" %(fname,fname,fname.split('.fasta')[0]) #This gets almost exact matches
 		os.system(BLAT_command)
 
 
@@ -436,22 +439,20 @@ def BuildGraph(fname,transcripts,verbose=False):
 				for tm in tmerge:
 					already_merged.append(tm)
 
-
-
 	####################################################
 	####### Whirl Elimination     ######################
 	####################################################
 	whirl_removal = True
+	whirl_status = 0
 	if(whirl_removal):
 		#Find all whirls
 		#print("Finding Whirls...")
 		whirls = list(nx.simple_cycles(C))
 		#print("DONE")
-
+		whirl_status = len(whirls) #Report initial numbe of whirls in graph
 
 		#Loop through each whirl
 		while len(whirls) > 0:
-
 			whirl = whirls[0]
 			M_node = None
 			Multi = 0
@@ -506,23 +507,14 @@ def BuildGraph(fname,transcripts,verbose=False):
 	coord = [0]
 	for index in base_order:
 		seq = seq + C.node[index]['Base']
-		coord.append(coord[-1] + len(C.node[index]['Base']))
+		coord.append(coord[-1] + len(C.node[index]['Base'])-1)
 
 	#String for annotation file
 	anno = ''
 	for i in range(0,len(coord)-1):
-		#anno = anno + (fname.split('/')[-1]).split('.fasta')[0] + '\t' + (fname.split('/')[-1]).split('.fasta')[0] + '\t' + str(coord[i]) + '\t' + str(coord[i+1]) + '\t' + '+' + '\n' #SAF format
-		#anno = anno + (fname.split('/')[-1]).split('.fasta')[0] + '\t' + str(coord[i]) + '\t' + str(coord[i+1]) + '\n' #Basic BED format
 		anno = anno + (fname.split('/')[-1]).split('.fasta')[0] + '\t' + 'SuperTranscript' + '\t' + 'exon' + '\t' + str(coord[i]+1) + '\t' + str(coord[i+1]+1) + '\t' + '.' + '\t' +'.' + '\t' + '0' + '\t' +  '.'  + '\n' #GFF2 format - 1 base for igv
 
-
-	#Save sequence to file
-	#superf = open('Super.fasta','w')
-	#superf.write('>Super' + '\n')
-	#superf.write(seq)
-	#superf.close()
-
-	return(seq,anno)
+	return(seq,anno,whirl_status)
 
 if __name__ == '__main__':
 	''' Takes one fasta file which contains all transcripts in cluster (gene) and builds a super transcript from it, outputing the sequence'''
