@@ -163,7 +163,7 @@ def FindMetrics(gene_name):
 
 	#Match transcripts to super transcript
 	print("Producing match to super transcript")
-	BLAT_command = "./blat Super_%s.fasta %s.fasta super_%s.psl" %(gene_name,gene_name,gene_name)
+	BLAT_command = "blat Super_%s.fasta %s.fasta super_%s.psl" %(gene_name,gene_name,gene_name)
 	os.system(BLAT_command)
 
 	#First read in BLAT output:
