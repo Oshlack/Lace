@@ -101,15 +101,25 @@ def Split(genome,corsetfile,ncore):
 
 		cnts = []
 		for gene in gene_list:
+			#Count number of transcripts assigned to cluster
+			cnt=0
+			for val in cluster.values():
+				if(val ==gene):cnt=cnt+1				
+			cnts.append(cnt)
+			if(cnt > 20): print("WARNING: Ribbon will only take the first 20 transcripts since there are too many transcripts in cluster") 
+		
 			fn = dir + '/' + gene + '.fasta' #General		
 			if(os.path.isfile(fn)): continue	#If already file
 			
 
-			f = open(fn,'w') 
+			f = open(fn,'w')
+			ts=0 
 			for tag in transcripts.keys():
 				if(gene == geneid[tag]):
+					if(ts==19): break #If already recorded 19 transcripts in gene.fasta file
 					f.write('>' + tag +  '\n')
 					f.write(transcripts[tag]+'\n')
+					ts += 1
 			f.close()
 
 		#Now submit Build Super Transcript for each gene in parallel
