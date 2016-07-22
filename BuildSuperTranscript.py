@@ -505,12 +505,12 @@ def BuildGraph(fname,transcripts,verbose=False):
 	coord = [0]
 	for index in base_order:
 		seq = seq + C.node[index]['Base']
-		coord.append(coord[-1] + len(C.node[index]['Base'])-1)
+		coord.append(coord[-1] + len(C.node[index]['Base'])) #0-based co-ordinates
 
 	#String for annotation file
 	anno = ''
 	for i in range(0,len(coord)-1):
-		anno = anno + (fname.split('/')[-1]).split('.fasta')[0] + '\t' + 'SuperTranscript' + '\t' + 'exon' + '\t' + str(coord[i]+1) + '\t' + str(coord[i+1]+1) + '\t' + '.' + '\t' +'.' + '\t' + '0' + '\t' +  '.'  + '\n' #GFF2 format - 1 base for igv
+		anno = anno + (fname.split('/')[-1]).split('.fasta')[0] + '\t' + 'SuperTranscript' + '\t' + 'exon' + '\t' + str(coord[i]+1) + '\t' + str(coord[i+1]) + '\t' + '.' + '\t' +'.' + '\t' + '0' + '\t' +  '.'  + '\n' #GFF2 format - 1 base for igv
 
 	return(seq,anno,whirl_status)
 
