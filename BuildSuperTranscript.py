@@ -453,13 +453,20 @@ def BuildGraph(fname,transcripts,verbose=False):
 		while len(whirls) > 0:
 			whirl = whirls[0]
 			M_node = None
-			Multi = 0
+			Multi = 100000000
 
 			#Find Highest multiplicity node in loop to use for breaking point of cycle
+			#for node in whirl:
+			#	temp = len(C.out_edges([node])) + len(C.out_edges([node]))
+			#	if(temp >= Multi):
+			#		Multi = temp
+			#		M_node = node
+
+                        #Find the node with smallest sequence and break there (instead of the highest multiplicty)
 			for node in whirl:
-				temp = len(C.out_edges([node])) + len(C.out_edges([node]))
-				if(temp >= Multi):
-					Multi = temp
+				temp = len(C.node[node]['Base'])
+				if(temp <= Multi):
+					Multi =temp
 					M_node = node
 
 			iM = whirl.index(M_node)
@@ -524,10 +531,11 @@ if __name__ == '__main__':
 
 	else:
 		fname = sys.argv[1]
-		seq,anno = SuperTran(fname,verbose=True)
+		seq,anno,whirl_status,transcript_status = SuperTran(fname,verbose=True)
 
 		print(seq)
 		print(anno)
-		
+		print(whirl_status)
+		print(transcript_status)
 
 	
