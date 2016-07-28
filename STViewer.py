@@ -33,6 +33,7 @@ def Visualise(gene_name):
 	#Match transcripts to super transcript
 	print("Producing match to super transcript")
 	BLAT_command = "./blat Super.fasta %s.fasta supercomp.psl" %(gene_name)
+	#BLAT_command = "./blat Super.fasta %s.fasta -prot -tileSize=4 supercomp.psl" %(gene_name)
 	os.system(BLAT_command)
 
 	#First read in BLAT output:
@@ -60,10 +61,10 @@ def Visualise(gene_name):
 	ax1=plt.subplot(gs[0])
 	accum = 0
 	for row in range(0,len(gff_data)):
-		size = int(gff_data.iloc[row,4]) - int(gff_data.iloc[row,3])
+		size = 1 + int(gff_data.iloc[row,4]) - int(gff_data.iloc[row,3])  #+1 for converting from gff co-ords to BLAT co-ords
 		plt.barh(len(transcripts),size,color='#ffc024',left=accum,alpha=0.8)
 		accum=accum+size
-		if(row > 0): plt.axvline(int(gff_data.iloc[row,3]),linestyle='dashed',color='black',linewidth=0.5)
+		#if(row > 0): plt.axvline(int(gff_data.iloc[row,3]),linestyle='dashed',color='black',linewidth=0.5)
 
 	plot_dict = {}
 	col_dict = {}
