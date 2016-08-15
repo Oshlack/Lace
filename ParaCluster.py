@@ -51,7 +51,7 @@ def Clean(corsetfile):
 		print("Not a real file, failed to clean")
 
 #Split fasta file into genes first then parallelise the BLAT for the different genes
-def Split(genome,corsetfile,ncore):
+def Split(genome,corsetfile,ncore,maxTran):
 	start_time = time.time()
 
 	#Find working directory
@@ -106,7 +106,7 @@ def Split(genome,corsetfile,ncore):
 			for val in cluster.values():
 				if(val ==gene):cnt=cnt+1				
 			cnts.append(cnt)
-			if(cnt > 20): print("WARNING: Ribbon will only take the first 20 transcripts since there are too many transcripts in cluster") 
+			if(cnt > maxTran): print("WARNING: Ribbon will only take the first " + str(maxTran) +" transcripts since there are too many transcripts in cluster") 
 		
 			fn = dir + '/' + gene + '.fasta' #General		
 			if(os.path.isfile(fn)): continue	#If already file
@@ -169,16 +169,20 @@ if __name__ == '__main__':
 	#Add Arguments
 	parser.add_argument("GenomeFile",help="The name of the fasta file containing all transcripts")
 	parser.add_argument("ClusterFile",help="The name of the text file with the transcript to cluster mapping")
-	parser.add_argument("--cores",help="The number of cores you wish to run the job on (default = 4)",default=4,type=int)
+	parser.add_argument("--cores",help="The number of cores you wish to run the job on (default = 1)",default=1,type=int)
 	parser.add_argument("--alternate","-aa",help="Create alternate annotations and create metrics on success of SuperTranscript Building",action='store_true')
 	parser.add_argument("--clear","-c",help="Clear intermediate files after processing",action='store_true')
+	parser.add_argument("--maxTran",help="Set a maximum for the number of transcripts from a cluster to be included for building the SuperTranscript (default=50).",default=20,type=int)
+
 	args= parser.parse_args()
 
-	Split(args.GenomeFile,args.ClusterFile,args.cores)
+	Split(args.GenomeFile,args.ClusterFile,args.cores,args.maxTran)
 
 	if(args.alternate):
+		dir = os.path.dirname(args.ClusterFile)
+		if(dir==''): dir='.'
 		print("Making Alternate Annotation and checks")
-		Checker('SuperDuper.fasta',args.cores)
+		Checker(dir+'/SuperDuper.fasta',args.cores)
 		print('Done')
 
 	if(args.clear):
