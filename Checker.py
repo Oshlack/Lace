@@ -219,6 +219,6 @@ if __name__=='__main__':
 
         #Add Arguments
 	parser.add_argument("SuperFile",help="The name of the SuperDuper.fasta file created by SuperTranscript")
-	parser.add_argument("--cores",help="The number of cores you wish to run the job on (default = 4)",default=4,type=int)
+	parser.add_argument("--cores",help="The number of cores you wish to run the job on (default = 1)",default=1,type=int)
 	args= parser.parse_args()
 	Checker(args.SuperFile,args.cores)

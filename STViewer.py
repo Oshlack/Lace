@@ -32,7 +32,7 @@ def Visualise(gene_name):
 
 	#Match transcripts to super transcript
 	print("Producing match to super transcript")
-	BLAT_command = "./blat Super.fasta %s.fasta supercomp.psl" %(gene_name)
+	BLAT_command = "blat Super.fasta %s.fasta supercomp.psl" %(gene_name)
 	#BLAT_command = "./blat Super.fasta %s.fasta -prot -tileSize=4 supercomp.psl" %(gene_name)
 	os.system(BLAT_command)
 

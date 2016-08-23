@@ -51,7 +51,7 @@ def Clean(corsetfile):
 		print("Not a real file, failed to clean")
 
 #Split fasta file into genes first then parallelise the BLAT for the different genes
-def Split(genome,corsetfile,ncore,maxTran):
+def Split(genome,corsetfile,ncore,maxTran,outdir):
 	start_time = time.time()
 
 	#Find working directory
@@ -108,7 +108,7 @@ def Split(genome,corsetfile,ncore,maxTran):
 			cnts.append(cnt)
 			if(cnt > maxTran): print("WARNING: Ribbon will only take the first " + str(maxTran) +" transcripts since there are too many transcripts in cluster") 
 		
-			fn = dir + '/' + gene + '.fasta' #General		
+			fn = outdir + '/' + gene + '.fasta' #General		
 			if(os.path.isfile(fn)): continue	#If already file
 			
 
@@ -141,16 +141,14 @@ def Split(genome,corsetfile,ncore,maxTran):
 
 
 		#Write Overall Super Duper Tran
-		superf = open(dir + '/' +'SuperDuper.fasta','w')
-		supgff = open(dir + '/' +'SuperDuper.gff','w')
+		superf = open(outdir + '/' +'SuperDuper.fasta','w')
+		supgff = open(outdir + '/' +'SuperDuper.gff','w')
 
 		for i,clust in enumerate(fnames):
 			#Just use the name of gene, without the preface
 			fn = clust.split("/")[-1]
 			fn = fn.split('.fasta')[0]
-			#superf.write('>' + fn  + ' Number of transcripts: ' + str(cnts[i]) +  '\n')
 			superf.write('>' + fn  + ' NoTrans:' + str(results[i][3]) + ',Whirls:' + str(results[i][2])  + '\n')
-			#superf.write('>' + fn + '\n'  )
 			superf.write(results[i][0] + '\n')
 
 		#Write Super gff
@@ -171,21 +169,21 @@ if __name__ == '__main__':
 	parser.add_argument("ClusterFile",help="The name of the text file with the transcript to cluster mapping")
 	parser.add_argument("--cores",help="The number of cores you wish to run the job on (default = 1)",default=1,type=int)
 	parser.add_argument("--alternate","-aa",help="Create alternate annotations and create metrics on success of SuperTranscript Building",action='store_true')
-	parser.add_argument("--clear","-c",help="Clear intermediate files after processing",action='store_true')
-	parser.add_argument("--maxTran",help="Set a maximum for the number of transcripts from a cluster to be included for building the SuperTranscript (default=50).",default=20,type=int)
+	#parser.add_argument("--clear","-c",help="Clear intermediate files after processing",action='store_true')
+	parser.add_argument("--maxTran",help="Set a maximum for the number of transcripts from a cluster to be included for building the SuperTranscript (default=50).",default=50,type=int)
+	parser.add_argument("--outputDir","-o",help="Output Directory",default=".")
 
 	args= parser.parse_args()
 
-	Split(args.GenomeFile,args.ClusterFile,args.cores,args.maxTran)
+	Split(args.GenomeFile,args.ClusterFile,args.cores,args.maxTran,args.outputDir)
 
 	if(args.alternate):
-		dir = os.path.dirname(args.ClusterFile)
-		if(dir==''): dir='.'
+		dire = args.outputDir
 		print("Making Alternate Annotation and checks")
-		Checker(dir+'/SuperDuper.fasta',args.cores)
+		Checker(dire+'/SuperDuper.fasta',args.cores)
 		print('Done')
 
-	if(args.clear):
-		print("Clearing all extraneous files")
-		Clean(args.ClusterFile)
-		print("Done")
+	#if(args.clear):
+		#print("Clearing all extraneous files")
+		#Clean(args.ClusterFile)
+		#print("Done")
