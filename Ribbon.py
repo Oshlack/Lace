@@ -128,7 +128,7 @@ def Split(genome,corsetfile,ncore,maxTran,outdir):
 
 		fnames = []
 		for gene in gene_list:
-			fname = dir + '/' + gene + '.fasta'
+			fname = outdir + '/' + gene + '.fasta'
 			fnames.append(fname)
 
 		# BY POOL		

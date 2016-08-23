@@ -15,6 +15,7 @@ from matplotlib import gridspec
 import pickle
 import time
 from matplotlib.backends.backend_pdf import PdfPages
+from itertools import repeat
 
 ################################################################
 ###### Visualise blocks and metricise in SuperTranscript #######

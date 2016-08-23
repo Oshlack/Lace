@@ -121,7 +121,7 @@ def Visualise(gene_name):
 	plt.xlabel('Bases')
 	plt.ylabel('Coverage')
 	plt.savefig("Visualise.pdf")
-	plt.show()
+	#plt.show()
 
 	###########################################
 	# Create GFF with transcript annotation ###
