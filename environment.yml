@@ -1,0 +1,10 @@
+name: ribbon
+channels:
+- bioconda
+dependencies:
+- python=3*
+- pandas
+- networkx
+- numpy
+- matplotlib
+- blat
