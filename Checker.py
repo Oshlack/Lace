@@ -27,6 +27,7 @@ def Checker(genome,ncore):
 	genes=[]
 	whirls=[]
 	f = open(genome,'r')
+
 	for line in f:
 		if('>' in line):
 			genes.append((line.split('>')[1]).split(" ")[0])

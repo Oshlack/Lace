@@ -178,9 +178,13 @@ if __name__ == '__main__':
 	Split(args.GenomeFile,args.ClusterFile,args.cores,args.maxTran,args.outputDir)
 
 	if(args.alternate):
-		dire = args.outputDir
+		cwd = os.getcwd()
+		#Change to output directory
+		os.chdir(args.outputDir)
 		print("Making Alternate Annotation and checks")
-		Checker(dire+'/SuperDuper.fasta',args.cores)
+		Checker('SuperDuper.fasta',args.cores)
+		#Change back
+		os.chdir(cwd)
 		print('Done')
 
 	#if(args.clear):
