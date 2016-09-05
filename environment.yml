@@ -1,4 +1,4 @@
-name: ribbon
+name: lace
 channels:
 - bioconda
 dependencies:
