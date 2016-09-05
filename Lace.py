@@ -1,5 +1,5 @@
-#The idea here is to build a script which takes a list of fasta files (each file being a set of transcripts from a Corset cluster which supposedly come from the same gene).
-#Then given each cluster, there should be a seperate parallelised job for each file which constructs the SuperTranscript for that cluster.
+#Lacing together different transcripts into a SuperTranscript
+
 
 import multiprocessing, logging
 from multiprocessing import Pool
