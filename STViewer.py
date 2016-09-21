@@ -1,13 +1,16 @@
 #Visualise a given gene in your super transcript
-import argparse
+
 import pandas as pd
 import matplotlib.pyplot as plt
-plt.style.use('seaborn-white')
 import numpy as np
 import sys
 import os
 from matplotlib.pyplot import cm
+import seaborn as sns
 from matplotlib import gridspec
+
+font = {'style' : 'oblique',
+        'size'   : 16}
 
 ##################################################
 ###### Visualise blocks in SuperTranscript #######
@@ -33,7 +36,6 @@ def Visualise(gene_name):
 	#Match transcripts to super transcript
 	print("Producing match to super transcript")
 	BLAT_command = "blat Super.fasta %s.fasta supercomp.psl" %(gene_name)
-	#BLAT_command = "./blat Super.fasta %s.fasta -prot -tileSize=4 supercomp.psl" %(gene_name)
 	os.system(BLAT_command)
 
 	#First read in BLAT output:
@@ -54,27 +56,26 @@ def Visualise(gene_name):
 	#Get Super Transcript Length
 	ST_length = int(vData.iloc[0,14])
 
-	#SuperTranscript as one block
-	#plt.barh(len(transcripts),ST_length,color='Black',left=0)
-
 	gs = gridspec.GridSpec(2,1,height_ratios=[4,1])
 	ax1=plt.subplot(gs[0])
 	accum = 0
-	for row in range(0,len(gff_data)):
-		size = 1 + int(gff_data.iloc[row,4]) - int(gff_data.iloc[row,3])  #+1 for converting from gff co-ords to BLAT co-ords
-		plt.barh(len(transcripts),size,color='#ffc024',left=accum,alpha=0.8)
-		accum=accum+size
-		#if(row > 0): plt.axvline(int(gff_data.iloc[row,3]),linestyle='dashed',color='black',linewidth=0.5)
+	#for row in range(0,len(gff_data)):
+	#	size = 1 + int(gff_data.iloc[row,4]) - int(gff_data.iloc[row,3]) #1+ for converting co-ordinate systems
+	#	plt.barh(len(transcripts),size,color='#ffc024',left=accum,alpha=0.8)
+	#	accum=accum+size
 
+	plt.barh(len(transcripts),ST_length,color='#ffc024',left=0)
 	plot_dict = {}
 	col_dict = {}
 	labs = []
 
-	col2=iter(cm.plasma(np.linspace(0,1,len(transcripts))))
+	#col2=iter(cm.plasma(np.linspace(0,1,len(transcripts))))
+	col2=iter(cm.terrain(np.linspace(0,1,len(transcripts))))
 	for i,key in enumerate(transcripts):
         	plot_dict[key] = i
         	col_dict[key] = next(col2)
-        	lab = "T"+str(i)
+        	#lab = "T"+str(i)
+        	lab =""
         	labs.append(lab)
 
 	#Empty vector to store coverage
@@ -101,9 +102,9 @@ def Visualise(gene_name):
 	ind=np.arange(len(transcripts)+1)
 	width=0.8
 	labs.append('Super')
-	plt.yticks(ind + width/2.,labs)
-	plt.title('Breakdown of Super Transcript')
-	plt.ylabel('Transcripts')
+	plt.yticks(ind + width/2.,labs,fontsize="medium",fontweight="semibold")
+	#plt.title('Breakdown of Super Transcript')
+	plt.ylabel('Transcripts',fontdict=font)
 
 
 	#################################
@@ -113,46 +114,31 @@ def Visualise(gene_name):
 	#For a super block, how many transcripts cover that area....
 	ax2=plt.subplot(gs[1],sharex=ax1)
 	x = np.arange(ST_length)
-	plt.bar(x,coverage,alpha=0.7)
+	plt.bar(x,coverage,color='slategray',alpha=0.7)
 	plt.xlim([0,ST_length+1])
 
 	#Fix x-axes
 	ax2.set_yticklabels([])
-	plt.xlabel('Bases')
-	plt.ylabel('Coverage')
-	plt.savefig("Visualise.pdf")
-	#plt.show()
-
-	###########################################
-	# Create GFF with transcript annotation ###
-	###########################################
-
-	fg = open(gene_name + ".gff","w")
-	#For each blat alignment
-	for j in range(0,len(vData)): 
-		qStarts = vData.iloc[j,19].split(",")
-		blocksizes  = vData.iloc[j,18].split(",")
-		for k in range(0,len(qStarts)-1): #Split qStarts, last in list is simply blank space
-			fg.write(gene_name + '\t' + 'SuperTranscript' + '\t' + 'exon' + '\t' + qStarts[k] + '\t' + str(int(qStarts[k]) + int(blocksizes[k])) + '\t' + '.' + '\t' +'.' + '\t' + '0' + '\t' + 'gene_id "' + gene_name +'"; transcript_id "' + vData.iloc[j,9] + '";'   + '\n')
-	fg.close()
-				
-
+	plt.xlabel('Bases',fontdict=font)
+	plt.ylabel('Coverage',fontdict=font)
+	plt.savefig('GeneView.pdf')
+	plt.show()
 
 if __name__=='__main__':
-	#Make argument parser
-        parser = argparse.ArgumentParser()
+	if(len(sys.argv) != 2):
+		print("Visualisation function requires one argument\n")
+		print("The gene whose super transcripts you wish to visualise\n")
+	else:
+		#Check all the super files are there
+		if(not os.path.isfile(sys.argv[1] + ".fasta")):
+			print("No fasta file for gene/cluster of interest\n")
+			sys.exit()
+		if(not os.path.isfile("SuperDuper.fasta")):
+			print("No fasta file for SuperTranscript\n")
+			sys.exit()
+		if(not os.path.isfile("SuperDuper.gff")):
+			print("No annotation file for SuperTranscript\n")
+			sys.exit()
+			
 
-        #Add Arguments
-        parser.add_argument("GeneName",help="The name of the gene whom you wish to view")
-        args= parser.parse_args()
-        if(not os.path.isfile(args.GeneName + ".fasta")):
-                print("No fasta file for gene/cluster of interest\n")
-                sys.exit()
-        if(not os.path.isfile("SuperDuper.fasta")):
-                print("No fasta file for SuperTranscript\n")
-                sys.exit()
-        if(not os.path.isfile("SuperDuper.gff")):
-                print("No annotation file for SuperTranscript\n")
-                sys.exit()
-
-        Visualise(args.GeneName)
+		Visualise(sys.argv[1])
