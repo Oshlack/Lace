@@ -1,10 +1,14 @@
-#A little script to construct an annotation from an SJ.out.tab file
+#Author: Anthony Hawkins
+#A little script to construct an annotation from an SJ.out.tab file, a standard STAR output. 
+# This creates the dynamic block annotation
+
 import argparse
 import pandas as pd
 import os, sys
 
 def Mobius(sjfile,gfile,ft,flat_ann):
-    #First read in the SJ.out.tab as sys.argv[1]
+
+	#First read in the SJ.out.tab as sys.argv[1]
     sj = pd.read_csv(sjfile,sep='\t',header=None,names=['Gene','Start','End','strand','intron motif','Annotated','Unique','Multi','Overhang'])
 
     #Read in SuperTranscript fasta file
@@ -28,7 +32,7 @@ def Mobius(sjfile,gfile,ft,flat_ann):
     for i in range(0,len(sj['Gene'])):
         curr_gene = sj.iloc[i,0]
         if(curr_gene not in slist.keys()): slist[curr_gene] = [1]
-        if((sj.iloc[i,7] + sj.iloc[i,8]) > 5): #More than 10 reads (either unique or multi spanninf junction)
+        if((sj.iloc[i,7] + sj.iloc[i,8]) > 5): #More than 5 reads (either unique or multi spanning junction)
             slist[curr_gene].append(int(sj.iloc[i,1])) #This is actually the intron start part (i.e one base over)
             slist[curr_gene].append(int(sj.iloc[i,2])+1) #This is the end of the exon-exon junction, so need to add one for the actual exon start place
 

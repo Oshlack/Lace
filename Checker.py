@@ -1,4 +1,8 @@
+#Author: Anthony Hawkins
+
 #A script to systematically check for each gene whether the SuperTranscript builder worked ok
+# And to produce the alternate annotation for the SuperTranscript
+
 import multiprocessing, logging
 from multiprocessing import Pool
 from multiprocessing import Process

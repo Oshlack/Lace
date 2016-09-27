@@ -1,3 +1,4 @@
+#Author: Anthony Hawkins
 #Visualise a given gene in your super transcript
 
 import pandas as pd
@@ -59,22 +60,16 @@ def Visualise(gene_name):
 	gs = gridspec.GridSpec(2,1,height_ratios=[4,1])
 	ax1=plt.subplot(gs[0])
 	accum = 0
-	#for row in range(0,len(gff_data)):
-	#	size = 1 + int(gff_data.iloc[row,4]) - int(gff_data.iloc[row,3]) #1+ for converting co-ordinate systems
-	#	plt.barh(len(transcripts),size,color='#ffc024',left=accum,alpha=0.8)
-	#	accum=accum+size
 
 	plt.barh(len(transcripts),ST_length,color='#ffc024',left=0)
 	plot_dict = {}
 	col_dict = {}
 	labs = []
 
-	#col2=iter(cm.plasma(np.linspace(0,1,len(transcripts))))
 	col2=iter(cm.terrain(np.linspace(0,1,len(transcripts))))
 	for i,key in enumerate(transcripts):
         	plot_dict[key] = i
         	col_dict[key] = next(col2)
-        	#lab = "T"+str(i)
         	lab =""
         	labs.append(lab)
 
@@ -103,7 +98,6 @@ def Visualise(gene_name):
 	width=0.8
 	labs.append('Super')
 	plt.yticks(ind + width/2.,labs,fontsize="medium",fontweight="semibold")
-	#plt.title('Breakdown of Super Transcript')
 	plt.ylabel('Transcripts',fontdict=font)
 
 
