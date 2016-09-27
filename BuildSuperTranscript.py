@@ -1,4 +1,6 @@
-#A quick little first pass script to read a BLAT output and then:
+# Author: Anthony Hawkins
+
+#A script to construct a SuperTranscript given a .fasta file of transcript sequence
 # 1) Determine block sequences
 # 2) Construct graph structure that stores each block with eges detailing how blocks are connect within transcripts
 # 3) Sort blocks from the graph into topological order
@@ -16,14 +18,12 @@ from matplotlib.pyplot import cm
 sys.setrecursionlimit(10000)
 
 
-	#Define a function to be used recursively to check for each succesor node whether it only has one in or out
-
+#Define a function to be used recursively to check for each succesor node whether it only has one in or out
 def successor_check(graph,n,tmerge):
 	ess = [node for node in graph.successors(n)] #Get list of succesors
 
 	#Check for all successors
 	for s in ess:
-		#if(len(graph.out_edges([s])) == 1 and len(graph.in_edges([s])) == 1): #I.e. if only one outgoing edge and one incoming edge it belongs to same block
 		if(len(graph.in_edges([s])) <= 1 and len(ess) <= 1): #Succesor node only has one incoming path and is the only option for the previous node
 			tmerge.append(s)
 			successor_check(graph,s,tmerge)
@@ -143,7 +143,7 @@ def filt_dir(table):
 
 	
 
-
+#Main function to produce a SuperTranscript
 def SuperTran(fname,verbose=False):
 	
 	#Start Clock for timing
@@ -173,7 +173,7 @@ def SuperTran(fname,verbose=False):
 	transcript_status = len(transcripts)
 	whirl_status = 0
 
-	#If there is only one transcript in this file, then simply that transcript is the super transcript
+	#If there is only one transcript in this file, then simply that transcript is the super transcript...
 	if(len(transcripts) == 1):
 		if(verbose): print("One\n") 
 		seq = next(iter(transcripts.values())) #Python 3 specific codee...
@@ -184,7 +184,7 @@ def SuperTran(fname,verbose=False):
 		try:
 			seq, anno, whirl_status  = BuildGraph(fname,transcripts,verbose)
 
-		except: #Graph building failed, just take longest transcript or (concatenate all transcripts)
+		except: #Graph building failed, just take longest transcript (or concatenate all transcripts)
 			temp = 0
 			seq = ''
 			print('FAILED to construct')
@@ -261,14 +261,6 @@ def BuildGraph(fname,transcripts,verbose=False):
 
 	
 	for i in range(0,len(bData)):
-
-		#Check explicitly that there are no gaps - OBS these "gaps" are actually gaps between blat blocks and not actually gaps within blat blocks as i initially thought
-		#if( bData.iloc[i,4] > 0 or bData.iloc[i,6] > 0):
-		#	continue
-	
-		#Don't allign the transcripts against each other twice...
-        	#I.e. BLAT does T1 vs T2 but also T2 vs T1 (which should be the same give or take)
-
 		
 		#Extract the info
 		seq=list(transcripts[bData.iloc[i,9]]) #Get sequence from query name
@@ -282,10 +274,6 @@ def BuildGraph(fname,transcripts,verbose=False):
 			tStart.append(int(tStarts[j]))
 			qStart.append(int(qStarts[j]))
 			qName.append(bData.iloc[i,9])
-
-		#OBS
-		#For now assume that there is no contradiction in the directionality (i.e. all blocks in psl are consistent with each contig being in the defined direction relative to each pair)
-		#if(trandir[bData.iloc[i,9]] == '-' and trandir[bData.iloc[i,13]] == '-'	
 
 	if(verbose): print("Constructing and merging nodes in graphs based on Blocks and Transcripts")
 
@@ -454,13 +442,6 @@ def BuildGraph(fname,transcripts,verbose=False):
 			whirl = whirls[0]
 			M_node = None
 			Multi = 100000000
-
-			#Find Highest multiplicity node in loop to use for breaking point of cycle
-			#for node in whirl:
-			#	temp = len(C.out_edges([node])) + len(C.out_edges([node]))
-			#	if(temp >= Multi):
-			#		Multi = temp
-			#		M_node = node
 
                         #Find the node with smallest sequence and break there (instead of the highest multiplicty)
 			for node in whirl:

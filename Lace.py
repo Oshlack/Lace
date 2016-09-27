@@ -1,4 +1,9 @@
+#Author: Anthony Hawkins
+
 #Lacing together different transcripts into a SuperTranscript
+#This is the main script which parrallelises making a SuperTranscript for each gene/cluster
+#The main inputs are .fasta file containing all transcripts in all the genes/cluster you wish to constuct
+#and a tab delimited text file of two columns with the mapping of transcripts <-> gene
 
 
 import multiprocessing, logging
@@ -179,10 +184,12 @@ if __name__ == '__main__':
 
 	if(args.alternate):
 		cwd = os.getcwd()
+
 		#Change to output directory
 		os.chdir(args.outputDir)
 		print("Making Alternate Annotation and checks")
 		Checker('SuperDuper.fasta',args.cores)
+
 		#Change back
 		os.chdir(cwd)
 		print('Done')
