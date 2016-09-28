@@ -7,7 +7,7 @@ import numpy as np
 import sys
 import os
 from matplotlib.pyplot import cm
-import seaborn as sns
+#import seaborn as sns
 from matplotlib import gridspec
 
 font = {'style' : 'oblique',
