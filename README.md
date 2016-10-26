@@ -9,4 +9,4 @@ If you have feature requests for the Lace software, or find inevitable bugs in t
 ###General SuperTranscript Analysis Questions
 
 If you have general questions about analysis data using SuperTranscripts please join the discussion at our google group:
-https://groups.google.com/forum/#!forum/supertranscript-analysis/new
+https://groups.google.com/forum/#!categories/oshlack-lab/supertranscript-analysis
