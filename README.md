@@ -2,11 +2,11 @@
 Welcome to the Lace GitHub! For documentation please refer to the wiki:  
 https://github.com/Oshlack/Lace/wiki
 
-#Feature Request and Bug Hunting
+##Feature Request and Bug Hunting
 
 If you have feature requests for the Lace software, or find inevitable bugs in the code please post them as issues on this GitHub.
 
-#General SuperTranscript Analysis Questions
+##General SuperTranscript Analysis Questions
 
 If you have general questions about analysis data using SuperTranscripts please join the discussion at our google group:
 https://groups.google.com/forum/#!forum/supertranscript-analysis/new
