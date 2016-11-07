@@ -233,7 +233,7 @@ def BuildGraph(fname,transcripts,verbose=False):
 	#Filter psl table where two transcripts can have multiple rows (usually because blat does T1 vs T2 then T2 vs T1 later)
 	bData, trandir = filt_dir(bData)
 
-	if(len(bData['strand'].unique()) > 1): #That is we have both pos and neg strands
+	if(len(bData['strand'].unique()) > 1 or bData['strand'].unique() == '-'): #That is we have both pos and neg strands or potentially two transcripts with a negative strand
 		print("Double Stranded Contigs\n")
 
 		#Re-correct the transcripts to be the reverse compliments if one of the transcripts has a negative directionality
