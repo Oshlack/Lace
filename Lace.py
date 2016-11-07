@@ -165,6 +165,15 @@ def Split(genome,corsetfile,ncore,maxTran,outdir):
 
 	
 if __name__ == '__main__':
+	
+	#Print Lace Version
+	print(" __      __    ____  ____ ")
+	print("(  )    / _\  /    )(  __)")
+	print("/  (_/\/    \(  (__  ) _) ")
+	print("\_____/\_/\_/\_____)(____)")
+	print("Lace Version: 0.80")
+	print("Last Editted: 07/11/16")
+	
 
 	#Make argument parser
 	parser = argparse.ArgumentParser()
