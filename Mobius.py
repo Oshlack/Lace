@@ -17,7 +17,7 @@ def Mobius(sjfile,gfile,ft,flat_ann,read_thresh):
     gene=''
     for line in sf:
         if('>' in line):
-            gene= (line.split(' ')[0]).split('>')[1]
+            gene= (line.split()[0]).split('>')[1]
             glength[gene] = ''
         else:
             glength[gene] = glength[gene] + line.split('\n')[0].split('\r')[0]
