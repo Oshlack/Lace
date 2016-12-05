@@ -6,7 +6,7 @@ import argparse
 import pandas as pd
 import os, sys
 
-def Mobius(sjfile,gfile,ft,flat_ann):
+def Mobius(sjfile,gfile,ft,flat_ann,read_thresh):
 
 	#First read in the SJ.out.tab as sys.argv[1]
     sj = pd.read_csv(sjfile,sep='\t',header=None,names=['Gene','Start','End','strand','intron motif','Annotated','Unique','Multi','Overhang'])
@@ -17,7 +17,7 @@ def Mobius(sjfile,gfile,ft,flat_ann):
     gene=''
     for line in sf:
         if('>' in line):
-            gene= (line.split(' ')[0]).split('>')[1]
+            gene= (line.split()[0]).split('>')[1]
             glength[gene] = ''
         else:
             glength[gene] = glength[gene] + line.split('\n')[0].split('\r')[0]
@@ -32,7 +32,7 @@ def Mobius(sjfile,gfile,ft,flat_ann):
     for i in range(0,len(sj['Gene'])):
         curr_gene = sj.iloc[i,0]
         if(curr_gene not in slist.keys()): slist[curr_gene] = [1]
-        if((sj.iloc[i,7] + sj.iloc[i,8]) > 5): #More than 5 reads (either unique or multi spanning junction)
+        if((sj.iloc[i,7] + sj.iloc[i,8]) > read_thresh): #More than 5 reads (either unique or multi spanning junction)
             slist[curr_gene].append(int(sj.iloc[i,1])) #This is actually the intron start part (i.e one base over)
             slist[curr_gene].append(int(sj.iloc[i,2])+1) #This is the end of the exon-exon junction, so need to add one for the actual exon start place
 
@@ -90,6 +90,16 @@ def Mobius(sjfile,gfile,ft,flat_ann):
 
 if __name__ == '__main__':
 
+	#ASCII art
+        print(" ___ ___   ___   ____   ____  __ __  _____")
+        print("|   |   | /   \ |    \ |    ||  |  |/  __/")
+        print("| _   _ ||     ||  o  ) |  | |  |  (   \_ ")
+        print("|  \_/  ||  o  ||     | |  | |  |  |\__  |")
+        print("|   |   ||     ||  O  | |  | |  :  |/  \ |")
+        print("|   |   ||     ||     | |  | |     |\    |")
+        print("|_______| \___/ |_____||____| \__,_| \___|")
+
+
         #Make argument parser
         parser = argparse.ArgumentParser()
 
@@ -98,8 +108,9 @@ if __name__ == '__main__':
         parser.add_argument("GenomeFasta",help="A fasta file containing the sequence for all genes in genome")
         parser.add_argument("-forceTrans","-ft",help="Force blocks where annotated transcripts start and end",action='store_true')
         parser.add_argument("-AnnoTrans","-a",help="Flattened SuperTranscript annotation file",default="")
+        parser.add_argument("-readThresh","-reads",help="The minimum number of reads in all combined samples required to support a splice junction (default=5)",default=5)
         args= parser.parse_args()
 
         print('Constructing Dynamic Blocks')
-        Mobius(args.SpliceJunctions,args.GenomeFasta,args.forceTrans,args.AnnoTrans)
+        Mobius(args.SpliceJunctions,args.GenomeFasta,args.forceTrans,args.AnnoTrans,args.readThresh)
         print('Done')
