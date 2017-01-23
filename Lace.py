@@ -111,7 +111,7 @@ def Split(genome,corsetfile,ncore,maxTran,outdir):
 			for val in cluster.values():
 				if(val ==gene):cnt=cnt+1				
 			cnts.append(cnt)
-			if(cnt > maxTran): print("WARNING: Ribbon will only take the first " + str(maxTran) +" transcripts since there are too many transcripts in cluster") 
+			if(cnt > maxTran): print("WARNING: Lace will only take the first " + str(maxTran) +" transcripts since there are too many transcripts in cluster") 
 		
 			fn = outdir + '/' + gene + '.fasta' #General		
 			if(os.path.isfile(fn)): continue	#If already file
@@ -121,7 +121,7 @@ def Split(genome,corsetfile,ncore,maxTran,outdir):
 			ts=0 
 			for tag in transcripts.keys():
 				if(gene == geneid[tag]):
-					if(ts==19): break #If already recorded 19 transcripts in gene.fasta file
+					if(ts==maxTran): break #If already recorded maxTran transcripts in gene.fasta file
 					f.write('>' + tag +  '\n')
 					f.write(transcripts[tag]+'\n')
 					ts += 1
@@ -171,8 +171,8 @@ if __name__ == '__main__':
 	print("(  )    / _\  /    )(  __)")
 	print("/  (_/\/    \(  (__  ) _) ")
 	print("\_____/\_/\_/\_____)(____)")
-	print("Lace Version: 0.80")
-	print("Last Editted: 07/11/16")
+	print("Lace Version: 0.81")
+	print("Last Editted: 20/01/17")
 	
 
 	#Make argument parser
