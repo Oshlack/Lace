@@ -24,7 +24,7 @@ def Visualise(gene_name):
 	#Find gene in genome
 	f= open("SuperDuper.fasta","r")
 	for line in f:
-		if(gene_name in line):
+		if((gene_name+" ")  in line): #Adding on space after name in order to distinguish Cluster1 from Cluster 100 or Cluser11
 			gene_string=next(f)
 			break
 	f.close()
