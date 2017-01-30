@@ -1,4 +1,7 @@
-# Lace
+<p align="center">
+<img src=https://github.com/Quarkins/SuperTranscript/blob/master/WikiFigs/logo.png height=200 />  
+</p>
+
 Welcome to the Lace GitHub! For documentation please refer to the wiki:  
 https://github.com/Oshlack/Lace/wiki
 
