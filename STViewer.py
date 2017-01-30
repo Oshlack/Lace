@@ -17,26 +17,33 @@ font = {'style' : 'oblique',
 ###### Visualise blocks in SuperTranscript #######
 ##################################################
 
-def Visualise(gene_name):
+def Visualise(gene_file):
 	
 	print("Producing Super Files\n")
+	gene= ""
+
+	if("/" in gene_file):
+		gene = (gene_file.split("/")[-1]).rstrip(".fasta")
+	else:
+		gene= gene_file.split(".fasta")
+
 	gene_string=""	
 	#Find gene in genome
 	f= open("SuperDuper.fasta","r")
 	for line in f:
-		if((gene_name+" ")  in line): #Adding on space after name in order to distinguish Cluster1 from Cluster 100 or Cluser11
+		if(gene in line): 
 			gene_string=next(f)
 			break
 	f.close()
 
 	fs= open("Super.fasta","w")
-	fs.write(">" + gene_name + "\n")
+	fs.write(">" + gene + "\n")
 	fs.write(gene_string)
 	fs.close()
 
 	#Match transcripts to super transcript
 	print("Producing match to super transcript")
-	BLAT_command = "blat Super.fasta %s.fasta supercomp.psl" %(gene_name)
+	BLAT_command = "blat Super.fasta %s supercomp.psl" %(gene_file)
 	os.system(BLAT_command)
 
 	#First read in BLAT output:
@@ -47,7 +54,7 @@ def Visualise(gene_name):
 	gff_data = pd.read_table('SuperDuper.gff',sep='\t',header=None)
 
 	#Subset GFF just for gene
-	gff_data = gff_data.loc[gff_data.ix[:,0] == gene_name,:]
+	gff_data = gff_data.loc[gff_data.ix[:,0] == gene,:]
 
 	#Make list of transcripts
 	transcripts = np.unique(list(vData['Q name']))
@@ -124,7 +131,7 @@ if __name__=='__main__':
 		print("The gene whose super transcripts you wish to visualise\n")
 	else:
 		#Check all the super files are there
-		if(not os.path.isfile(sys.argv[1] + ".fasta")):
+		if(not os.path.isfile(sys.argv[1])):
 			print("No fasta file for gene/cluster of interest\n")
 			sys.exit()
 		if(not os.path.isfile("SuperDuper.fasta")):
