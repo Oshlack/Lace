@@ -4,7 +4,7 @@ channels:
 dependencies:
 - python=3*
 - pandas
-- networkx
+- networkx 1.1
 - numpy
 - matplotlib
 - blat
