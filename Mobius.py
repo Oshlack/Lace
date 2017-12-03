@@ -32,7 +32,7 @@ def Mobius(sjfile,gfile,ft,flat_ann,read_thresh):
     for i in range(0,len(sj['Gene'])):
         curr_gene = sj.iloc[i,0]
         if(curr_gene not in slist.keys()): slist[curr_gene] = [1]
-        if((sj.iloc[i,7] + sj.iloc[i,8]) > read_thresh): #More than 5 reads (either unique or multi spanning junction)
+        if((sj.iloc[i,6] + sj.iloc[i,7]) > read_thresh): #More than 5 reads (either unique or multi spanning junction)
             slist[curr_gene].append(int(sj.iloc[i,1])) #This is actually the intron start part (i.e one base over)
             slist[curr_gene].append(int(sj.iloc[i,2])+1) #This is the end of the exon-exon junction, so need to add one for the actual exon start place
 
