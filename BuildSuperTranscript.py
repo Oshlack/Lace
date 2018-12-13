@@ -14,6 +14,7 @@ import numpy as np
 import sys
 import os
 from matplotlib.pyplot import cm 
+import traceback
 
 sys.setrecursionlimit(10000)
 
@@ -36,9 +37,14 @@ def merge_nodes(lnodes,graph): #Given a list of nodes merge them
     #Effectively merge all nodes onto first node
 
     #Redirect last node in lists edge to first node in list
-    for n1,n2,d in graph.out_edges(lnodes[-1],data=True):
-        graph.add_edge(lnodes[0],n2,d)
-
+    for out_edge in graph.out_edges(lnodes[-1],data=True):
+        n1,n2,d = out_edge
+        if d:
+            graph.add_edge(lnodes[0],n2,d)
+        else:
+            # d looks empty, so removing it to avoid: TypeError: add_edge() takes exactly 3 arguments (4 given)
+            graph.add_edge(lnodes[0],n2)
+    
     #Get base sequence for full merge
     seq = graph.node[lnodes[0]]['Base']
     for i in range(1,len(lnodes)):
@@ -144,7 +150,7 @@ def filt_dir(table):
     
 
 #Main function to produce a SuperTranscript
-def SuperTran(fname,verbose=False):
+def SuperTran(fname,verbose=True):
     
     #Start Clock for timing
     start_time = time.time()
@@ -184,8 +190,8 @@ def SuperTran(fname,verbose=False):
         try:
             seq, anno, whirl_status  = BuildGraph(fname,transcripts,verbose)
 
-        except e: #Graph building failed, just take longest transcript (or concatenate all transcripts)
-            print(e)
+        except: #Graph building failed, just take longest transcript (or concatenate all transcripts)
+            traceback.print_exc()
             temp = 0
             seq = ''
             print('FAILED to construct')
@@ -416,7 +422,13 @@ def BuildGraph(fname,transcripts,verbose=False):
     C = G.to_directed()
     conmerge=True
     if(conmerge == True):
-        for n,d in C.nodes(data=True):
+        c_nodes = C.nodes(data=True)
+        # avoid: RuntimeError: dictionary changed size during iteration w/ py3.6.5
+        ns = list()
+        for n,d in c_nodes:
+            ns.append(n)
+
+        for n in ns:
             if(len(C.out_edges([n])) >1 ): continue #Continue if node branches, that is to say if has more than one out edge
             if(n in already_merged): continue
             to_merge = [n]

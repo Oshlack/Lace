@@ -15,6 +15,7 @@ import sys
 import time
 import argparse
 from Checker import Checker
+import traceback
 
 def worker(fname):
     seq =''
@@ -24,6 +25,7 @@ def worker(fname):
     try:
         seq,ann,whirl_status,transcript_status = SuperTran(fname)
     except:
+        traceback.print_exc()
         print("Failed:", fname)
     return seq,ann,whirl_status,transcript_status
 
