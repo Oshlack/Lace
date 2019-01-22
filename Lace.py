@@ -166,15 +166,15 @@ if __name__ == '__main__':
     print("(  )    / _\  /    )(  __)")
     print("/  (_/\/    \(  (__  ) _) ")
     print("\_____/\_/\_/\_____)(____)")
-    print("Lace Version: 0.82")
-    print("Last Editted: 30/01/17")
+    print("Lace Version: 0.83")
+    print("Last Editted: 22/01/19")
     
 
     #Make argument parser
     parser = argparse.ArgumentParser()
 
     #Add Arguments
-    parser.add_argument("GenomeFile",help="The name of the fasta file containing all transcripts")
+    parser.add_argument("TranscriptsFile",help="The name of the fasta file containing all transcripts")
     parser.add_argument("ClusterFile",help="The name of the text file with the transcript to cluster mapping")
     parser.add_argument("--cores",help="The number of cores you wish to run the job on (default = 1)",default=1,type=int)
     parser.add_argument("--alternate","-a",help="Create alternate annotations and create metrics on success of SuperTranscript Building",action='store_true')
