@@ -192,7 +192,7 @@ if __name__ == '__main__':
             print("Creating output directory")
             os.mkdir(args.outputDir)
 
-    Split(args.GenomeFile,args.ClusterFile,args.cores,args.maxTran,args.outputDir)
+    Split(args.TranscriptsFile,args.ClusterFile,args.cores,args.maxTran,args.outputDir)
 
     if(args.alternate):
         cwd = os.getcwd()
