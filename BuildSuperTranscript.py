@@ -291,12 +291,15 @@ def BuildGraph(fname,transcripts,verbose=False):
     G= nx.DiGraph()
     Node_index=0
     node_dict = {} #A place to find the index of a node
+    reverse_node_dict = []
     for key in transcripts:
         node_dict[key] = [-1] * len(list(transcripts[key]))
 
     #############################
     # ADD NODES AND EDGES #######
     #############################
+
+    if(verbose): print("Setting up graph: adding a node for each base")
 
     #Add a node for every base in each transcript
     for key in transcripts:
@@ -307,19 +310,25 @@ def BuildGraph(fname,transcripts,verbose=False):
             #Add attributes
             G.node[Node_index]['Base'] = transcripts[key][i]
 
+            #Add to the reverse dictionary
+            reverse_node_dict.append( {key : [i]} )
+
             #Add coordinates
             for k in transcripts:
                 if(k == key): G.node[Node_index][k] = i
                 else: G.node[Node_index][k] = None
 
             #Add to dictionary
-            node_dict[key][i] = Node_index
 
+            node_dict[key][i] = Node_index
             Node_index=Node_index + 1
 
     ###################################################
         ## Add Edges between adjacent transcript nodes ####
         ###################################################
+
+    if(verbose): print("Add Edges between adjacent transcript nodes")
+
     for key in node_dict:
         for j in range(0,len(node_dict[key])-1):
             G.add_edge(node_dict[key][j],node_dict[key][j+1])
@@ -328,14 +337,15 @@ def BuildGraph(fname,transcripts,verbose=False):
     ####################################################
     ## Let the gluing commence #########################
     ####################################################
-
+    if(verbose): 
+        print("Merging nodes")
+        
     #Now we want to merge the nodes in blocks
     for i in range(0,len(block_seq)): #Loop through every block sequence
 
         if(tName[i] == qName[i]): continue #If comparing transcript to itself the nodes are already made
 
         for j in range(0,len(block_seq[i])): #Loop through every base in a given block 
-
 
             #Co-ordinate for base in transcript and query sequences
             tpos = j + tStart[i]
@@ -353,18 +363,11 @@ def BuildGraph(fname,transcripts,verbose=False):
 
                 #Consideration - Whirls from repeated sections
                 #Check if transcript node id already used for another base on the query string
-                try:
-                    ll = node_dict[qName[i]].index(tnid)
-
-                except ValueError:
-                    ll = -1
-
-                #Check whether the transcript node you are merging to, isnt already in the query string
-                if(ll >= 0 and ll != qpos): continue
+                if(qName[i] in reverse_node_dict[tnid]):
+                    if(reverse_node_dict[tnid][qName[i]]!=[qpos]): continue
 
                 #If the node you are intending to merge is already merged to somewhere else on the transcript string, dont merge as can cause wirls
-                if(qnid in node_dict[tName[i]]): continue            
-
+                if(tName[i] in reverse_node_dict[qnid]): continue
 
                 #Redirect incoming edges
                 for n1,n2 in G.in_edges([qnid]): #For each pair of nodes where there is an edge for query nodes 
@@ -374,9 +377,8 @@ def BuildGraph(fname,transcripts,verbose=False):
                 for n1,n2 in G.out_edges([qnid]): #For each pair of nodes where there is an edge for query nodes
                     G.add_edge(tnid,n2)                
 
-
                 #Merge attributes, without overwriting transcript node, first for query node
-                G.node[tnid][qName[i]] = qpos    
+                G.node[tnid][qName[i]] = qpos 
                 
                 #Loop through attributes in query node and add if not none
                 for key in transcripts:
@@ -388,25 +390,30 @@ def BuildGraph(fname,transcripts,verbose=False):
                         if(key != tName[i]): G.node[tnid][key] = G.node[qnid][key] #Don't replace transcript position
                         #Update Dictionary
                         node_dict[key][G.node[qnid][key]] = tnid
-                    
+
+
                         
-                    
                 #################
                 # Remove old node
                 #################
 
-                #Remove query node since we have no merged it to the transcript node
+                #Remove query node since we have now merged it to the transcript node
                 G.remove_node(qnid)
 
-                #Change Dictionary Call for query node
-                node_dict[qName[i]][qpos] = tnid
+                #Change Dictionary Call for query node and 
+                #Check that no element in node dict contains the old node which is removed, if it does replace it
+                for key in reverse_node_dict[qnid]:
+                    for pos in reverse_node_dict[qnid][key]:
+                        node_dict[key][pos] = tnid
 
-                
-                #Recursive check that no element in node dict contains the old node which is removed, if it does replace it...perhaps think of another way...
-                for key in node_dict:
-                    if(qnid in node_dict[key]):
-                        node_dict[key][node_dict[key].index(qnid)] = tnid
-
+                #Update the reverse dictionary
+                for key in reverse_node_dict[qnid]:
+                    if key in reverse_node_dict[tnid]:
+                        reverse_node_dict[tnid][key].extend(reverse_node_dict[qnid][key])
+                        reverse_node_dict[tnid][key]=set(reverse_node_dict[tnid][key])
+                    else:
+                        reverse_node_dict[tnid][key]=reverse_node_dict[qnid][key]
+                reverse_node_dict[qnid]={}
 
 
     ############################################
@@ -517,7 +524,6 @@ def BuildGraph(fname,transcripts,verbose=False):
 
 if __name__ == '__main__':
     ''' Takes one fasta file which contains all transcripts in cluster (gene) and builds a super transcript from it, outputing the sequence'''
-    
 
     if(len(sys.argv) != 2):
         print('Function takes one fasta file as input')

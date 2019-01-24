@@ -33,11 +33,11 @@ def worker(fname):
 def Clean(corsetfile,outdir):
     
     #Make tidy directory
-    mcom = 'mkdir %s/SuperFiles' %(outdir)
-    os.system(mcom)    
+    #mcom = 'mkdir %s/SuperFiles' %(outdir)
+    #os.system(mcom)    
     
-    print("Moving all fasta and psl files created to:")
-    print(outdir + "/SuperFiles")
+    print("Removing all fasta and psl files created")
+#    print(outdir + "/SuperFiles")
     clusters = []
     corse = open(corsetfile,'r')
     for line in corse:
@@ -46,9 +46,11 @@ def Clean(corsetfile,outdir):
 
     #Now move all the fasta and psl files
     for clust in clusters: 
-        mcom = 'mv %s/%s.fasta %s/SuperFiles' %(outdir,clust,outdir)
+        #mcom = 'mv %s/%s.fasta %s/SuperFiles' %(outdir,clust,outdir)
+        mcom = 'rm %s/%s.fasta' %(outdir,clust)
         os.system(mcom)
-        mcom = 'mv %s/%s.psl %s/SuperFiles' %(outdir,clust,outdir)
+        #mcom = 'mv %s/%s.psl %s/SuperFiles' %(outdir,clust,outdir)
+        mcom = 'rm %s/%s.psl' %(outdir,clust)
         os.system(mcom)
 
 #Split fasta file into genes first then parallelise the BLAT for the different genes
@@ -104,7 +106,7 @@ def Split(genome,corsetfile,ncore,maxTran,outdir):
             #Count number of transcripts assigned to cluster
             cnt=0
             for val in cluster.values():
-                if(val ==gene):cnt=cnt+1                
+                if(val ==gene):cnt=cnt+1
             cnts.append(cnt)
             if(cnt > maxTran): print("WARNING: Lace will only take the first " + str(maxTran) +" transcripts since there are too many transcripts in cluster") 
         
@@ -131,7 +133,7 @@ def Split(genome,corsetfile,ncore,maxTran,outdir):
             fname = outdir + '/' + gene + '.fasta'
             fnames.append(fname)
 
-        # BY POOL        
+        # BY POOL
         #ncore = 4
         pool = Pool(processes=ncore)
         result = pool.map_async(worker,fnames)
@@ -160,7 +162,7 @@ def Split(genome,corsetfile,ncore,maxTran,outdir):
 
     
 if __name__ == '__main__':
-    
+
     #Print Lace Version
     print(" __      __    ____  ____ ")
     print("(  )    / _\  /    )(  __)")
@@ -191,7 +193,6 @@ if __name__ == '__main__':
         else:
             print("Creating output directory")
             os.mkdir(args.outputDir)
-
     Split(args.TranscriptsFile,args.ClusterFile,args.cores,args.maxTran,args.outputDir)
 
     if(args.alternate):
@@ -210,3 +211,4 @@ if __name__ == '__main__':
         print("Storing all extraneous files in SuperFiles")
         Clean(args.ClusterFile,args.outputDir)
         print("Done")
+
