@@ -30,31 +30,23 @@ def worker(fname):
     return seq,ann,whirl_status,transcript_status
 
 #A little function to move all .fasta and .psl files created into a sub directory to tidy the space
-def Clean(corsetfile,outdir):
+def Clean(clusters,outdir,full_clean):
     
-    #Make tidy directory
-    #mcom = 'mkdir %s/SuperFiles' %(outdir)
-    #os.system(mcom)    
-    
-    print("Removing all fasta and psl files created")
-#    print(outdir + "/SuperFiles")
-    clusters = []
-    corse = open(corsetfile,'r')
-    for line in corse:
-        clust = line.split()[1].rstrip('/n')
-        if(clust not in clusters): clusters.append(clust)
+    print("Cleaning up")
 
-    #Now move all the fasta and psl files
-    for clust in clusters: 
-        #mcom = 'mv %s/%s.fasta %s/SuperFiles' %(outdir,clust,outdir)
-        mcom = 'rm %s/%s.fasta' %(outdir,clust)
+    if(not full_clean):
+        mcom_mkdir = 'mkdir %s/SuperFiles' %(outdir)
+        os.system(mcom_mkdir)
+    for clust in clusters:
+        if(full_clean):
+            mcom = 'rm %s/%s.fasta %s/%s.psl' %(outdir,clust,outdir,clust)
+        else:
+            mcom = 'mv %s/%s.fasta %s/%s.psl %s/SuperFiles' %(outdir,clust,outdir,clust,outdir)
         os.system(mcom)
-        #mcom = 'mv %s/%s.psl %s/SuperFiles' %(outdir,clust,outdir)
-        mcom = 'rm %s/%s.psl' %(outdir,clust)
-        os.system(mcom)
+
 
 #Split fasta file into genes first then parallelise the BLAT for the different genes
-def Split(genome,corsetfile,ncore,maxTran,outdir):
+def Split(genome,corsetfile,ncore,maxTran,outdir,full_clean):
     start_time = time.time()
 
     #Find working directory
@@ -75,6 +67,13 @@ def Split(genome,corsetfile,ncore,maxTran,outdir):
             clust = line.split()[1].rstrip('/n')
             cluster[tran] = clust            
 
+    #Check which clusters only contain one transcript
+    single_cluster=[]
+    for clus in set(cluster.values()) :
+        trans=list(cluster.values()).count(clus)
+        if trans==1 :
+            single_cluster.append(clus)
+
     #Now loop through fasta file
     if(os.path.isfile(genome)):
         print("Creating a fasta file per gene...")
@@ -91,7 +90,8 @@ def Split(genome,corsetfile,ncore,maxTran,outdir):
                 transcripts[tag] = ''
     
                 #Assign names
-                if(tag in cluster.keys()): geneid[tag] = cluster[tag] #If assigned by corset
+                if(tag in cluster.keys() and cluster[tag] not in single_cluster ): #remove single transcript clusters
+                    geneid[tag] = cluster[tag] #If assigned by corset
                 else: geneid[tag] = 'None'
                 transid[tag] = tag
             else:
@@ -146,6 +146,12 @@ def Split(genome,corsetfile,ncore,maxTran,outdir):
         superf = open(outdir + '/' +'SuperDuper.fasta','w')
         supgff = open(outdir + '/' +'SuperDuper.gff','w')
 
+        #Write out the single cluster genes first
+        for tag in cluster.keys():
+            if(cluster[tag] in single_cluster):
+                superf.write('>' + cluster[tag]  + ' NoTrans:1,Whirls:0\n')
+                superf.write(transcripts[tag] + '\n')
+
         for i,clust in enumerate(fnames):
             #Just use the name of gene, without the preface
             fn = clust.split("/")[-1]
@@ -156,6 +162,8 @@ def Split(genome,corsetfile,ncore,maxTran,outdir):
         #Write Super gff
         for res in results:
                         supgff.write(res[1])
+
+        Clean(gene_list,outdir,full_clean)
 
         print("BUILT SUPERTRANSCRIPTS ---- %s seconds ----" %(time.time()-start_time))
 
@@ -168,8 +176,8 @@ if __name__ == '__main__':
     print("(  )    / _\  /    )(  __)")
     print("/  (_/\/    \(  (__  ) _) ")
     print("\_____/\_/\_/\_____)(____)")
-    print("Lace Version: 0.83")
-    print("Last Editted: 22/01/19")
+    print("Lace Version: 0.89")
+    print("Last Editted: 25/01/19")
     
 
     #Make argument parser
@@ -180,7 +188,7 @@ if __name__ == '__main__':
     parser.add_argument("ClusterFile",help="The name of the text file with the transcript to cluster mapping")
     parser.add_argument("--cores",help="The number of cores you wish to run the job on (default = 1)",default=1,type=int)
     parser.add_argument("--alternate","-a",help="Create alternate annotations and create metrics on success of SuperTranscript Building",action='store_true')
-    parser.add_argument("--tidy","-t",help="Move intermediate fasta files into folder: SuperFiles after running",action='store_true')
+    parser.add_argument("--tidy","-t",help="Remove intermediate fasta files after running",action='store_true')
     parser.add_argument("--maxTran",help="Set a maximum for the number of transcripts from a cluster to be included for building the SuperTranscript (default=50).",default=50,type=int)
     parser.add_argument("--outputDir","-o",help="Output Directory",default=".")
 
@@ -193,7 +201,7 @@ if __name__ == '__main__':
         else:
             print("Creating output directory")
             os.mkdir(args.outputDir)
-    Split(args.TranscriptsFile,args.ClusterFile,args.cores,args.maxTran,args.outputDir)
+    Split(args.TranscriptsFile,args.ClusterFile,args.cores,args.maxTran,args.outputDir,args.tidy)
 
     if(args.alternate):
         cwd = os.getcwd()
@@ -205,10 +213,7 @@ if __name__ == '__main__':
 
         #Change back
         os.chdir(cwd)
-        print('Done')
 
-    if(args.tidy):
-        print("Storing all extraneous files in SuperFiles")
-        Clean(args.ClusterFile,args.outputDir)
-        print("Done")
+    print('Done')
+
 
