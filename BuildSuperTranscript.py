@@ -150,7 +150,7 @@ def filt_dir(table):
     
 
 #Main function to produce a SuperTranscript
-def SuperTran(fname,verbose=True):
+def SuperTran(fname,verbose=False):
     
     #Start Clock for timing
     start_time = time.time()
@@ -190,8 +190,8 @@ def SuperTran(fname,verbose=True):
         try:
             seq, anno, whirl_status  = BuildGraph(fname,transcripts,verbose)
 
-        except: #Graph building failed, just take longest transcript (or concatenate all transcripts)
-            traceback.print_exc()
+        except Exception as error: #Graph building failed, just take longest transcript (or concatenate all transcripts)
+            print(error)
             temp = 0
             seq = ''
             print('FAILED to construct')
@@ -201,10 +201,11 @@ def SuperTran(fname,verbose=True):
                     seq = ''.join(val)
 
             anno = (fname.split('/')[-1]).split('.fasta')[0] + '\t' + 'SuperTranscript' + '\t' + 'exon' + '\t' + '1' + '\t' + str(len(seq)) + '\t' + '.' + '\t' +'.' + '\t' + '0' + '\t' + '.' + '\n'
-    
+            whirl_status=-1
+            transcript_status=-1
     return(seq,anno,whirl_status,transcript_status)
 
-def BuildGraph(fname,transcripts,verbose=False):
+def BuildGraph(fname,transcripts,verbose=False,max_edges=100):
     # A Function to build a bruijn graph/splice node graph based on the transcripts assigned to a given cluster
     # One node per base in the transcript are created, then based on pairwise allignments of transcripts (using BLAT)
     # nodes in overlapping transcripts are glued together
@@ -410,7 +411,7 @@ def BuildGraph(fname,transcripts,verbose=False):
                 for key in reverse_node_dict[qnid]:
                     if key in reverse_node_dict[tnid]:
                         reverse_node_dict[tnid][key].extend(reverse_node_dict[qnid][key])
-                        reverse_node_dict[tnid][key]=set(reverse_node_dict[tnid][key])
+                        reverse_node_dict[tnid][key]=list(set(reverse_node_dict[tnid][key]))
                     else:
                         reverse_node_dict[tnid][key]=reverse_node_dict[qnid][key]
                 reverse_node_dict[qnid]={}
@@ -445,15 +446,26 @@ def BuildGraph(fname,transcripts,verbose=False):
                 for tm in tmerge:
                     already_merged.append(tm)
 
+
     ####################################################
     ####### Whirl Elimination     ######################
     ####################################################
     whirl_removal = True
     whirl_status = 0
+    #cycle breaking takes too long for very complex graphs
+    #which are usually too full of repeats to be useful anyway
+    #give up here
+    if(C.number_of_edges() > max_edges):
+        raise Exception('Graph too complex, giving up on whirl removal')
+
     if(whirl_removal):
+        start_time=time.time()
+
         #Find all whirls
         #print("Finding Whirls...")
         whirls = list(nx.simple_cycles(C))
+        print("3- %s" %(time.time()-start_time))
+
         #print("DONE")
         whirl_status = len(whirls) #Report initial numbe of whirls in graph
 
@@ -498,17 +510,15 @@ def BuildGraph(fname,transcripts,verbose=False):
             whirls = list(nx.simple_cycles(C))
 
     
-
+    print("3- %s" %(time.time()-start_time))
     #Will crash if there is a cycle, therefore do a try
     try:
         base_order = nx.topological_sort(C)
 
     except nx.NetworkXUnfeasible:
-        if(verbose): print("CYCLESSSSSS!!!!!!")
-        anno = ''
-        return("CYCLE",anno)
+        raise Exception('Failed to topologically sort graph, cycles present??')
     
-        
+    print("4- %s" %(time.time()-start_time))    
     seq =''
     coord = [0]
     for index in base_order:

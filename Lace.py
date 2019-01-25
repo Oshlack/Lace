@@ -39,9 +39,11 @@ def Clean(clusters,outdir,full_clean):
         os.system(mcom_mkdir)
     for clust in clusters:
         if(full_clean):
-            mcom = 'rm %s/%s.fasta %s/%s.psl' %(outdir,clust,outdir,clust)
+            mcom = 'rm -f %s/%s.fasta %s/%s_stranded.fasta %s/%s.psl %s/%s_stranded.psl' \
+                %(outdir,clust,outdir,clust,outdir,clust,outdir,clust)
         else:
-            mcom = 'mv %s/%s.fasta %s/%s.psl %s/SuperFiles' %(outdir,clust,outdir,clust,outdir)
+            mcom = 'mv -f %s/%s.fasta %s/%s_stranded.fasta %s/%s.psl %s/%s_stranded.psl %s/SuperFiles' \
+                %(outdir,clust,outdir,clust,outdir,clust,outdir,clust,outdir)
         os.system(mcom)
 
 
@@ -108,7 +110,7 @@ def Split(genome,corsetfile,ncore,maxTran,outdir,full_clean):
             for val in cluster.values():
                 if(val ==gene):cnt=cnt+1
             cnts.append(cnt)
-            if(cnt > maxTran): print("WARNING: Lace will only take the first " + str(maxTran) +" transcripts since there are too many transcripts in cluster") 
+            if(cnt > maxTran): print("WARNING: Lace will only take the first " + str(maxTran) +" transcripts since there are too many transcripts in "+gene) 
         
             fn = outdir + '/' + gene + '.fasta' #General        
             if(os.path.isfile(fn)): continue    #If already file
