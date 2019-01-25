@@ -16,20 +16,21 @@ import os
 from matplotlib.pyplot import cm 
 import traceback
 
-sys.setrecursionlimit(10000)
-
+sys.setrecursionlimit(100000)
 
 #Define a function to be used recursively to check for each succesor node whether it only has one in or out
 def successor_check(graph,n,tmerge):
     ess = [node for node in graph.successors(n)] #Get list of succesors
 
-    #Check for all successors
-    for s in ess:
-        if(len(graph.in_edges([s])) <= 1 and len(ess) <= 1): #Succesor node only has one incoming path and is the only option for the previous node
-            tmerge.append(s)
-            successor_check(graph,s,tmerge)
+    #might need to check if ess is already in tmerge list (for case of a looped chain)
 
+    #Succesor node only has one incoming path and is the only option for the previous nod
+    if(len(ess)!=1 or len(graph.in_edges(ess))>1 ): return(tmerge) 
+    
+    tmerge.append(ess[0])
     #Will recursively run until there is no successor node to add then we will return the list of nodes to merge
+    successor_check(graph,ess[0],tmerge)
+        
     return(tmerge)
 
 
@@ -459,12 +460,10 @@ def BuildGraph(fname,transcripts,verbose=False,max_edges=100):
         raise Exception('Graph too complex, giving up on whirl removal')
 
     if(whirl_removal):
-        start_time=time.time()
 
         #Find all whirls
         #print("Finding Whirls...")
         whirls = list(nx.simple_cycles(C))
-        print("3- %s" %(time.time()-start_time))
 
         #print("DONE")
         whirl_status = len(whirls) #Report initial numbe of whirls in graph
@@ -510,7 +509,6 @@ def BuildGraph(fname,transcripts,verbose=False,max_edges=100):
             whirls = list(nx.simple_cycles(C))
 
     
-    print("3- %s" %(time.time()-start_time))
     #Will crash if there is a cycle, therefore do a try
     try:
         base_order = nx.topological_sort(C)
@@ -518,7 +516,6 @@ def BuildGraph(fname,transcripts,verbose=False,max_edges=100):
     except nx.NetworkXUnfeasible:
         raise Exception('Failed to topologically sort graph, cycles present??')
     
-    print("4- %s" %(time.time()-start_time))    
     seq =''
     coord = [0]
     for index in base_order:

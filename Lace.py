@@ -39,10 +39,10 @@ def Clean(clusters,outdir,full_clean):
         os.system(mcom_mkdir)
     for clust in clusters:
         if(full_clean):
-            mcom = 'rm -f %s/%s.fasta %s/%s_stranded.fasta %s/%s.psl %s/%s_stranded.psl' \
+            mcom = 'rm %s/%s.fasta %s/%s_stranded.fasta %s/%s.psl %s/%s_stranded.psl 2>/dev/null' \
                 %(outdir,clust,outdir,clust,outdir,clust,outdir,clust)
         else:
-            mcom = 'mv -f %s/%s.fasta %s/%s_stranded.fasta %s/%s.psl %s/%s_stranded.psl %s/SuperFiles' \
+            mcom = 'mv %s/%s.fasta %s/%s_stranded.fasta %s/%s.psl %s/%s_stranded.psl %s/SuperFiles 2>/dev/null' \
                 %(outdir,clust,outdir,clust,outdir,clust,outdir,clust,outdir)
         os.system(mcom)
 
