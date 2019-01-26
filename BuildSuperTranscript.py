@@ -16,21 +16,19 @@ import os
 from matplotlib.pyplot import cm 
 import traceback
 
-sys.setrecursionlimit(100000)
+#sys.setrecursionlimit(100000)
 
-#Define a function to be used recursively to check for each succesor node whether it only has one in or out
+#Define a function to check for each succesor node whether it only has one in or out
 def successor_check(graph,n,tmerge):
+
     ess = [node for node in graph.successors(n)] #Get list of succesors
-
-    #might need to check if ess is already in tmerge list (for case of a looped chain)
-
-    #Succesor node only has one incoming path and is the only option for the previous nod
-    if(len(ess)!=1 or len(graph.in_edges(ess))>1 ): return(tmerge) 
-    
-    tmerge.append(ess[0])
-    #Will recursively run until there is no successor node to add then we will return the list of nodes to merge
-    successor_check(graph,ess[0],tmerge)
-        
+    #Succesor node only has one incoming path and is the only option for the previous node
+    #Run until there is no successor node to add 
+    while(len(ess)==1 and len(graph.in_edges(ess))<=1):
+        tmerge.append(ess[0])
+        ess = [node for node in graph.successors(ess[0])]
+        #might need to check if ess is already in tmerge list (for case of a looped chain)????
+    #return the list of nodes to merge
     return(tmerge)
 
 
@@ -206,7 +204,7 @@ def SuperTran(fname,verbose=False):
             transcript_status=-1
     return(seq,anno,whirl_status,transcript_status)
 
-def BuildGraph(fname,transcripts,verbose=False,max_edges=100):
+def BuildGraph(fname,transcripts,verbose=True,max_edges=100):
     # A Function to build a bruijn graph/splice node graph based on the transcripts assigned to a given cluster
     # One node per base in the transcript are created, then based on pairwise allignments of transcripts (using BLAT)
     # nodes in overlapping transcripts are glued together
@@ -242,32 +240,36 @@ def BuildGraph(fname,transcripts,verbose=False,max_edges=100):
     #Filter psl table where two transcripts can have multiple rows (usually because blat does T1 vs T2 then T2 vs T1 later)
     bData, trandir = filt_dir(bData)
 
+    start_time = time.time()
     if(len(bData['strand'].unique()) > 1 or bData['strand'].unique() == '-'): #That is we have both pos and neg strands or potentially two transcripts with a negative strand
-        print("Double Stranded Contigs\n")
+        if(verbose): print("Double Stranded Contigs")
 
-        #Re-correct the transcripts to be the reverse compliments if one of the transcripts has a negative directionality
-        for key in trandir:
-            if(trandir[key] == '-'):
-                transcripts[key] = Reverse_complement(transcripts[key])
-
-    
-        #Write a fasta file with the contigs all in same direction
+        #Name of fasta file with the contigs all in same direction
         fcorr = fname.split('.fasta')[0] + "_stranded" + ".fasta"
-        print(fcorr)
-        fc = open(fcorr,"w")
-        for key in transcripts:
-            fc.write(">" + key + "\n")
-            fc.write(transcripts[key]+"\n")
-        fc.close()    
 
-        #Re-BLAT
-        reblat = "blat %s %s -maxGap=0 -minIdentity=98  %s.psl" %(fcorr,fcorr,fcorr.split('.fasta')[0]) #This gets almost exact matches
-        os.system(reblat)
+        #check if the strand corrected fasta has already been generated
+        if(not os.path.isfile(fcorr)):
+            #Re-correct the transcripts to be the reverse compliments if one of the transcripts has a negative directionality
+            for key in trandir:
+                if(trandir[key] == '-'):
+                    transcripts[key] = Reverse_complement(transcripts[key])
+            fc = open(fcorr,"w")
+            for key in transcripts:
+                fc.write(">" + key + "\n")
+                fc.write(transcripts[key]+"\n")
+            fc.close()
+
+        #check if strand fixed blat has already been done
+        if(not os.path.isfile(fcorr.split('.fasta')[0] + '.psl')):
+            print("here 4")
+            #Re-BLAT
+            reblat = "blat %s %s -maxGap=0 -minIdentity=98  %s.psl" %(fcorr,fcorr,fcorr.split('.fasta')[0]) #This gets almost exact matches
+            os.system(reblat)
+
+        #open the blat table
         bData = pd.read_table(fcorr.split('.fasta')[0] + '.psl',sep='\t',header = None,names=Header_names,skiprows=5)
-    
         #Re-filter
         bData, trandir = filt_dir(bData)
-
     
     for i in range(0,len(bData)):
         
@@ -447,10 +449,11 @@ def BuildGraph(fname,transcripts,verbose=False,max_edges=100):
                 for tm in tmerge:
                     already_merged.append(tm)
 
-
     ####################################################
     ####### Whirl Elimination     ######################
     ####################################################
+    if(verbose): print("Checking for whirls")
+
     whirl_removal = True
     whirl_status = 0
     #cycle breaking takes too long for very complex graphs
