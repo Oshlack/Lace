@@ -18,15 +18,16 @@ from Checker import Checker
 import traceback
 
 def worker(fname):
+    print("Processing cluster %s - %s" %(fname[1],fname[0]))
     seq =''
     ann = ''
     whirl_status=0
     transcript_status=0
     try:
-        seq,ann,whirl_status,transcript_status = SuperTran(fname)
+        seq,ann,whirl_status,transcript_status = SuperTran(fname[0])
     except:
         traceback.print_exc()
-        print("Failed:", fname)
+        print("Failed:", fname[0])
     return seq,ann,whirl_status,transcript_status
 
 #A little function to move all .fasta and .psl files created into a sub directory to tidy the space
@@ -131,19 +132,22 @@ def Split(genome,corsetfile,ncore,maxTran,outdir,full_clean):
         jobs = []
 
         fnames = []
+        job_id=1
         for gene in gene_list:
             fname = outdir + '/' + gene + '.fasta'
-            fnames.append(fname)
+            fnames.append([fname,"%s of %s" %(job_id,len(gene_list))])
+            job_id+=1;
 
         # BY POOL
         #ncore = 4
+#        print("%s clusters will be processed " %len(gene_list) )
+
         pool = Pool(processes=ncore)
-        result = pool.map_async(worker,fnames)
+        result = pool.map_async(worker,fnames,chunksize=1)
         pool.close()
         pool.join()
         results = result.get()
-
-
+        
         #Write Overall Super Duper Tran
         superf = open(outdir + '/' +'SuperDuper.fasta','w')
         supgff = open(outdir + '/' +'SuperDuper.gff','w')
@@ -156,7 +160,7 @@ def Split(genome,corsetfile,ncore,maxTran,outdir,full_clean):
 
         for i,clust in enumerate(fnames):
             #Just use the name of gene, without the preface
-            fn = clust.split("/")[-1]
+            fn = clust[0].split("/")[-1]
             fn = fn.split('.fasta')[0]
             superf.write('>' + fn  + ' NoTrans:' + str(results[i][3]) + ',Whirls:' + str(results[i][2])  + '\n')
             superf.write(results[i][0] + '\n')
