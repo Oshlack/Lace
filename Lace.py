@@ -128,7 +128,7 @@ def Split(genome,corsetfile,ncore,maxTran,outdir,full_clean):
             f.close()
 
         #Now submit Build Super Transcript for each gene in parallel
-        print("Now Building SuperTranscript for each gene...")
+        print("Now building superTranscript for each multi-transcript gene...")
         jobs = []
 
         fnames = []

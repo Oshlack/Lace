@@ -261,7 +261,6 @@ def BuildGraph(fname,transcripts,verbose=True,max_edges=100):
 
         #check if strand fixed blat has already been done
         if(not os.path.isfile(fcorr.split('.fasta')[0] + '.psl')):
-            print("here 4")
             #Re-BLAT
             reblat = "blat %s %s -maxGap=0 -minIdentity=98  %s.psl" %(fcorr,fcorr,fcorr.split('.fasta')[0]) #This gets almost exact matches
             os.system(reblat)
