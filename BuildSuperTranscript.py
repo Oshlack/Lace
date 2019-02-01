@@ -182,7 +182,10 @@ def SuperTran(fname,verbose=False):
     if(len(transcripts) == 1):
         if(verbose): print("One\n") 
         seq = next(iter(transcripts.values())) #Python 3 specific codee...
-        anno = (fname.split('/')[-1]).split('.fasta')[0] + '\t' + 'SuperTranscript' + '\t' + 'exon' + '\t' + '1' + '\t' + str(len(seq)) + '\t' + '.' + '\t' +'.' + '\t' + '0' + '\t' + '.'  + '\n'
+        cluster_id = (fname.split('/')[-1]).split('.fasta')[0]
+        anno = cluster_id + '\t' + 'SuperTranscript' + '\t' \
+            + 'exon' + '\t' + '1' + '\t' + str(len(seq)) + '\t' \
+            + '.' + '\t' +'.' + '\t' + '0' + '\t' + 'gene_id \"' + cluster_id + '\"\n'
 
     else:
         #Try topo sorting a graph
@@ -199,7 +202,10 @@ def SuperTran(fname,verbose=False):
                     temp = len(val)
                     seq = ''.join(val)
 
-            anno = (fname.split('/')[-1]).split('.fasta')[0] + '\t' + 'SuperTranscript' + '\t' + 'exon' + '\t' + '1' + '\t' + str(len(seq)) + '\t' + '.' + '\t' +'.' + '\t' + '0' + '\t' + '.' + '\n'
+            anno = cluster_id + '\t' + \
+                'SuperTranscript' + '\t' + 'exon' + '\t' + '1' + '\t' + \
+                str(len(seq)) + '\t' + '.' + '\t' +'.' + '\t' + '0' + '\t' \
+                + 'gene_id \"' + cluster_id + '\"\n'
             whirl_status=-1
             transcript_status=-1
     return(seq,anno,whirl_status,transcript_status)
@@ -527,7 +533,10 @@ def BuildGraph(fname,transcripts,verbose=True,max_edges=100):
     #String for annotation file
     anno = ''
     for i in range(0,len(coord)-1):
-        anno = anno + (fname.split('/')[-1]).split('.fasta')[0] + '\t' + 'SuperTranscript' + '\t' + 'exon' + '\t' + str(coord[i]+1) + '\t' + str(coord[i+1]) + '\t' + '.' + '\t' +'.' + '\t' + '0' + '\t' +  '.'  + '\n' #GFF2 format - 1 base for igv
+        cluster_id=(fname.split('/')[-1]).split('.fasta')[0]
+        anno = anno + cluster_id + '\t' + 'SuperTranscript' + '\t' + 'exon' \
+            + '\t' + str(coord[i]+1) + '\t' + str(coord[i+1]) + '\t' + '.' \
+            + '\t' +'.' + '\t' + '0' + '\t' +  'gene_id \"' + cluster_id  + '\"\n' #GFF2 format - 1 base for igv
 
     return(seq,anno,whirl_status)
 
