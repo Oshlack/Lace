@@ -182,7 +182,7 @@ if __name__ == '__main__':
     print("(  )    / _\  /    )(  __)")
     print("/  (_/\/    \(  (__  ) _) ")
     print("\_____/\_/\_/\_____)(____)")
-    print("Lace Version: 0.90")
+    print("Lace Version: 1.10")
     print("Last Editted: 04/02/19")
     
 
