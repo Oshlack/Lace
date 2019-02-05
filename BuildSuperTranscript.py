@@ -194,6 +194,7 @@ def SuperTran(fname,verbose=False):
 
         except Exception as error: #Graph building failed, just take longest transcript (or concatenate all transcripts)
             print(error)
+            traceback.print_exception()
             temp = 0
             seq = ''
             print('FAILED to construct')
@@ -499,16 +500,21 @@ def BuildGraph(fname,transcripts,verbose=True,max_edges=100):
 
             ### Create edges in new node and remove some from old node
             #Copy out edges to new node and remove from old
-            for n1,n2,d in C.out_edges(iM,data=True):
+            for n1,n2,d in list(C.out_edges(iM,data=True)):
                 if(n2 not in whirl):
-                    C.add_edge(Node_index,n2,d)
+                    if d:
+                        C.add_edge(Node_index,n2,d)
+                    else:
+                        C.add_edge(Node_index,n2)
                     C.remove_edge(iM,n2)
-            
 
             #Get In edge to new node and remove from old
-            for n1,n2,d in C.in_edges(iM,data=True):
-                if(n1 in whirl): 
-                    C.add_edge(n1,Node_index,d)
+            for n1,n2,d in list(C.in_edges(iM,data=True)):
+                if(n1 in whirl):
+                    if d:
+                        C.add_edge(n1,Node_index,d)
+                    else:
+                        C.add_edge(n1,Node_index)
                     C.remove_edge(n1,iM)
 
             Node_index= Node_index+1
