@@ -201,7 +201,7 @@ def SuperTran(fname,verbose=False):
                 if(len(val) > temp):
                     temp = len(val)
                     seq = ''.join(val)
-
+            cluster_id = (fname.split('/')[-1]).split('.fasta')[0]
             anno = cluster_id + '\t' + \
                 'SuperTranscript' + '\t' + 'exon' + '\t' + '1' + '\t' + \
                 str(len(seq)) + '\t' + '.' + '\t' +'.' + '\t' + '0' + '\t' \
