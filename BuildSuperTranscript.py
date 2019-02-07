@@ -194,7 +194,7 @@ def SuperTran(fname,verbose=False):
 
         except Exception as error: #Graph building failed, just take longest transcript (or concatenate all transcripts)
             print(error)
-            traceback.print_exception()
+            #traceback.print_exception()
             temp = 0
             seq = ''
             print('FAILED to construct')
