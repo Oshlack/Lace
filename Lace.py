@@ -11,6 +11,7 @@ from multiprocessing import Pool
 from multiprocessing import Process
 import os
 from BuildSuperTranscript import SuperTran
+from BuildSuperTranscript import get_annotation_line
 import sys
 import time
 import argparse
@@ -153,10 +154,12 @@ def Split(genome,corsetfile,ncore,maxTran,outdir,full_clean):
         supgff = open(outdir + '/' +'SuperDuper.gff','w')
 
         #Write out the single cluster genes first
+        
         for tag in cluster.keys():
             if(cluster[tag] in single_cluster):
-                superf.write('>' + cluster[tag]  + ' NoTrans:1,Whirls:0\n')
-                superf.write(transcripts[tag] + '\n')
+                fnames.append([cluster[tag],''])
+                anno=get_annotation_line(cluster[tag],'1',str(len(transcripts[tag])))
+                results.append([transcripts[tag],anno,0,1])
 
         for i,clust in enumerate(fnames):
             #Just use the name of gene, without the preface
