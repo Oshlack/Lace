@@ -20,26 +20,42 @@ import pickle
 import time
 from matplotlib.backends.backend_pdf import PdfPages
 from itertools import repeat
+from BuildSuperTranscript import get_annotation_line
 
 ################################################################
 ###### Visualise blocks and metricise in SuperTranscript #######
 ################################################################
 
-def Checker(genome,ncore):
+def Checker(superTranscriptome,superTransGff,ncore,files_subdir):
 	start_time = time.time()
 	print("Finding list of genes")
 	genes=[]
 	whirls=[]
-	f = open(genome,'r')
+	metrics_input=[]
+	single_trans_clusters=[]
+	single_trans_anno={}
 
+	#read the annotation file and pull out all the lines by 
+	#cluster id so we can reuse them for single transcript clusters
+	g = open(superTransGff,'r')
+	for line in g:
+		single_trans_anno[line.split("\t")[0]]=line
+
+	f = open(superTranscriptome,'r')
 	for line in f:
 		if('>' in line):
-			genes.append((line.split('>')[1]).split(" ")[0])
-			whirls.append(int((line.split('>')[1]).split(":")[-1]))
-
+			gene=(line.split('>')[1]).split(" ")[0]
+			ntrans=int((line.split(",")[0]).split(":")[-1])
+			if(ntrans>1): # don't need to process single trans. clusters
+			   genes.append(gene)
+			   whirls.append(int((line.split('>')[1]).split(":")[-1]))
+			   metrics_input.append([gene,files_subdir])
+			else:
+                           single_trans_clusters.append(gene)
+	
 	# BY POOL
 	pool = Pool(processes=ncore)
-	result = pool.map_async(FindMetrics,genes)
+	result = pool.map_async(FindMetrics,metrics_input)
 	pool.close()
 	pool.join()
 	results = result.get()
@@ -48,6 +64,11 @@ def Checker(genome,ncore):
 	for i,gene in enumerate(genes):
 		mapping,fraction,anno,compact,ntran = results[i]
 		metrics[gene] = [mapping,fraction,anno,compact,ntran]
+
+	#now add in the single transcript clusters back into the metrics map
+	for gene in single_trans_clusters:
+		anno=single_trans_anno[gene]
+		metrics[gene] = [1,{"gene":1},anno,1,1]
 
 	#Fraction of genes where we get a one to one mapping
 	mapp_frac = []
@@ -104,7 +125,7 @@ def Checker(genome,ncore):
 		n, bins, patches = plt.hist(frac_covered,20,alpha=0.75,range=[0,1],color='#8172B2')
 		plt.xlabel("Fraction of transcript covered in SuperTranscript")
 		plt.ylabel("Frequency")
-		plt.title('Fraction of transcripts encroporated into SuperTranscript')
+		plt.title('Fraction of transcripts incorporated into SuperTranscript')
 		pdf.savefig()
 		plt.close()
 
@@ -144,11 +165,13 @@ def Checker(genome,ncore):
 	fg.close()
 	print("ANNOCHECKED ---- %s seconds ----" %(time.time()-start_time))
 	
-def FindMetrics(gene_name):
+def FindMetrics(metric_input):
+	gene_name=metric_input[0]
+	files_subdir=metric_input[1]
 
 	#EXTRACT GENE FROM SUPER
 	gene_string=""
-	#Find gene in genome
+	#Find gene in superTranscriptome
 	f= open("SuperDuper.fasta","r")
 	for line in f:
 		if('>' in line):
@@ -166,7 +189,7 @@ def FindMetrics(gene_name):
 
 	#Match transcripts to super transcript
 	print("Producing match to super transcript")
-	BLAT_command = "blat Super_%s.fasta %s.fasta super_%s.psl" %(gene_name,gene_name,gene_name)
+	BLAT_command = "blat Super_%s.fasta %s/%s.fasta super_%s.psl" %(gene_name,files_subdir,gene_name,gene_name)
 	os.system(BLAT_command)
 
 	#First read in BLAT output:
@@ -209,22 +232,26 @@ def FindMetrics(gene_name):
                 tStarts = vData.iloc[j,20].split(",")
                 blocksizes  = vData.iloc[j,18].split(",")
                 for k in range(0,len(tStarts)-1): #Split qStarts, last in list is simply blank space
-                        anno = anno + gene_name + '\t' + 'SuperTranscript' + '\t' + 'exon' + '\t' + str(int(tStarts[k]) +1) + '\t' + str(int(tStarts[k]) + int(blocksizes[k])) + '\t' + '.' + '\t' +'.' + '\t' + '0' + '\t' + 'gene_id "' + gene_name +'"; transcript_id "' + vData.iloc[j,9] + '";'   + '\n'
+                   anno = anno + get_annotation_line(gene_name,str(int(tStarts[k]) +1),str(int(tStarts[k]) + int(blocksizes[k])),vData.iloc[j,9])
 
 	#Remove the psl and fasta file needed for the blat
 	dcom='rm Super_%s.fasta' %(gene_name)
 	os.system(dcom)
 	dcom = 'rm super_%s.psl' %(gene_name)
 	os.system(dcom)
+	
+#	print(mapping, fraction, anno, compact, ntran)
 		
-	return(mapping, fraction, anno, compact,ntran)
+	return(mapping, fraction, anno, compact, ntran)
 
 if __name__=='__main__':
 	#Make argument parser
 	parser = argparse.ArgumentParser()
 
         #Add Arguments
-	parser.add_argument("SuperFile",help="The name of the SuperDuper.fasta file created by SuperTranscript")
+	parser.add_argument("--SuperFasta",help="The name of the SuperDuper.fasta file created by SuperTranscript",default="SuperDuper.fasta",type=str)
+	parser.add_argument("--SuperGff",help="The name of the SuperDuper.gff file created by SuperTranscript",default="SuperDuper.gff",type=str)
 	parser.add_argument("--cores",help="The number of cores you wish to run the job on (default = 1)",default=1,type=int)
+	parser.add_argument("--SuperDir",help="Subdirectory where the .psl and .fasta files for each cluster can be found",default="SuperFiles",type=str)
 	args= parser.parse_args()
-	Checker(args.SuperFile,args.cores)
+	Checker(args.SuperFasta,args.SuperGff,args.cores,args.SuperDir)

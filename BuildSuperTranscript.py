@@ -67,7 +67,7 @@ def Reverse_complement(transcript):
     return ('').join(rev_tran[::-1]) #Now return the list reversed
 
 #Format a line for the annotation file, SuperDuper.gff
-def get_annotation_line(cluster_id, start, end):
+def get_annotation_line(cluster_id, start, end, trans_id):
    return(cluster_id + '\t' + 
           'SuperTranscript' + '\t' + 
           'exon' + '\t' + 
@@ -77,7 +77,8 @@ def get_annotation_line(cluster_id, start, end):
           '.' + '\t' + 
           '0' + '\t' +  
           'gene_id \"' + cluster_id  + 
-          '\"\n') #GFF2 format - 1 base for igv
+          '\"; trans_id \"' + trans_id  + 
+          '\";\n') #GFF2 format - 1 base for igv
 
 #Define direction of transcripts in fasta file
 #Loop through table from psl
@@ -195,7 +196,7 @@ def SuperTran(fname,verbose=False):
         if(verbose): print("One\n") 
         seq = next(iter(transcripts.values())) #Python 3 specific codee...
         cluster_id = (fname.split('/')[-1]).split('.fasta')[0]
-        anno = get_annotation_line(cluster_id,1,str(len(seq)))
+        anno = get_annotation_line(cluster_id,1,str(len(seq)),cluster_id)
 
     else:
         #Try topo sorting a graph
@@ -213,10 +214,7 @@ def SuperTran(fname,verbose=False):
                     temp = len(val)
                     seq = ''.join(val)
             cluster_id = (fname.split('/')[-1]).split('.fasta')[0]
-            anno = cluster_id + '\t' + \
-                'SuperTranscript' + '\t' + 'exon' + '\t' + '1' + '\t' + \
-                str(len(seq)) + '\t' + '.' + '\t' +'.' + '\t' + '0' + '\t' \
-                + 'gene_id \"' + cluster_id + '\"\n'
+            anno = get_annotation_line(cluster_id,1,str(len(seq)),cluster_id)
             whirl_status=-1
             transcript_status=-1
     return(seq,anno,whirl_status,transcript_status)
@@ -550,7 +548,7 @@ def BuildGraph(fname,transcripts,verbose=True,max_edges=100):
     anno = ''
     for i in range(0,len(coord)-1):
         cluster_id=(fname.split('/')[-1]).split('.fasta')[0]
-        anno = anno + get_annotation_line(cluster_id,str(coord[i]+1),str(coord[i+1]))
+        anno = anno + get_annotation_line(cluster_id,str(coord[i]+1),str(coord[i+1]),cluster_id)
 
     return(seq,anno,whirl_status)
 

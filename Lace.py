@@ -153,12 +153,11 @@ def Split(genome,corsetfile,ncore,maxTran,outdir,full_clean):
         superf = open(outdir + '/' +'SuperDuper.fasta','w')
         supgff = open(outdir + '/' +'SuperDuper.gff','w')
 
-        #Write out the single cluster genes first
-        
+        #Add single cluster genes to the list of results        
         for tag in cluster.keys():
             if(cluster[tag] in single_cluster):
                 fnames.append([cluster[tag],''])
-                anno=get_annotation_line(cluster[tag],'1',str(len(transcripts[tag])))
+                anno=get_annotation_line(cluster[tag],'1',str(len(transcripts[tag])),tag)
                 results.append([transcripts[tag],anno,0,1])
 
         for i,clust in enumerate(fnames):
@@ -218,7 +217,7 @@ if __name__ == '__main__':
         #Change to output directory
         os.chdir(args.outputDir)
         print("Making Alternate Annotation and checks")
-        Checker('SuperDuper.fasta',args.cores)
+        Checker('SuperDuper.fasta','SuperDuper.gff',args.cores,'SuperFiles')
 
         #Change back
         os.chdir(cwd)
