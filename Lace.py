@@ -184,8 +184,8 @@ if __name__ == '__main__':
     print("(  )    / _\  /    )(  __)")
     print("/  (_/\/    \(  (__  ) _) ")
     print("\_____/\_/\_/\_____)(____)")
-    print("Lace Version: 1.12")
-    print("Last Editted: 22/02/19")
+    print("Lace Version: 1.13")
+    print("Last Editted: 10/03/19")
     
 
     #Make argument parser

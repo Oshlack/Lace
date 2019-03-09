@@ -24,10 +24,11 @@ def successor_check(graph,n,tmerge):
     ess = [node for node in graph.successors(n)] #Get list of succesors
     #Succesor node only has one incoming path and is the only option for the previous node
     #Run until there is no successor node to add 
-    while(len(ess)==1 and len(graph.in_edges(ess))<=1):
+    #check if ess is already in tmerge list (for case of a looped chain)
+    while(len(ess)==1 and len(graph.in_edges(ess))<=1 and (ess[0] not in tmerge)):
         tmerge.append(ess[0])
         ess = [node for node in graph.successors(ess[0])]
-        #might need to check if ess is already in tmerge list (for case of a looped chain)????
+
     #return the list of nodes to merge
     return(tmerge)
 
