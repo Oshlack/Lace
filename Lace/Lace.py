@@ -183,8 +183,7 @@ def main(args=None):
     print("(  )    / _\  /    )(  __)")
     print("/  (_/\/    \(  (__  ) _) ")
     print("\_____/\_/\_/\_____)(____)")
-    print("Lace Version: 1.13")
-    print("Last Editted: 10/03/19")
+    print("Lace Version: 1.14")
     
 
     #Make argument parser
