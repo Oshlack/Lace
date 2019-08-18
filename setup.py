@@ -1,7 +1,7 @@
 from setuptools import setup
 
 setup(name='Lace',
-      version='1.14',
+      version='1.14.0',
       packages=['Lace'],
       license='GPL3',
       install_requires=['pandas',
