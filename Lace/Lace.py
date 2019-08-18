@@ -1,3 +1,4 @@
+#!/usr/bin/env python
 #Author: Anthony Hawkins
 
 #Lacing together different transcripts into a SuperTranscript
@@ -10,12 +11,12 @@ import multiprocessing, logging
 from multiprocessing import Pool
 from multiprocessing import Process
 import os
-from BuildSuperTranscript import SuperTran
-from BuildSuperTranscript import get_annotation_line
+from Lace.BuildSuperTranscript import SuperTran
+from Lace.BuildSuperTranscript import get_annotation_line
 import sys
 import time
 import argparse
-from Checker import Checker
+from Lace.Checker import Checker
 import traceback
 
 def worker(fname):
@@ -176,9 +177,7 @@ def Split(genome,corsetfile,ncore,maxTran,outdir,full_clean):
         print("BUILT SUPERTRANSCRIPTS ---- %s seconds ----" %(time.time()-start_time))
 
 
-    
-if __name__ == '__main__':
-
+def main(args=None):
     #Print Lace Version
     print(" __      __    ____  ____ ")
     print("(  )    / _\  /    )(  __)")
@@ -225,3 +224,5 @@ if __name__ == '__main__':
     print('Done')
 
 
+if __name__ == '__main__':
+    main()

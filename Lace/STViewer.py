@@ -1,3 +1,4 @@
+#!/usr/bin/env python
 #Author: Anthony Hawkins
 #Visualise a given gene in your super transcript
 
@@ -125,7 +126,8 @@ def Visualise(gene_file):
 	plt.savefig('GeneView.pdf')
 	plt.show()
 
-if __name__=='__main__':
+
+def main(args=None):
 	if(len(sys.argv) != 2):
 		print("Visualisation function requires one argument\n")
 		print("The gene whose super transcripts you wish to visualise\n")
@@ -143,3 +145,7 @@ if __name__=='__main__':
 			
 
 		Visualise(sys.argv[1])
+
+
+if __name__=='__main__':
+	main()
