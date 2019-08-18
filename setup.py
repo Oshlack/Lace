@@ -13,9 +13,9 @@ setup(name='Lace',
               'BuildSuperScript=Lace.BuildSuperScript:main',
               'Lace_Checker=Lace.Checker:main',
               'Lace=Lace.Lace:main',
-              'Mobius-as=Lace.Mobius-as:main',
+              #'Mobius-as=Lace.Mobius-as:main',
               'Mobius=Lace.Mobius:main',
-              'STViewer=Lace.STViewer:main',
+              'STViewer=Lace.STViewer:main'
           ]
       },
 )

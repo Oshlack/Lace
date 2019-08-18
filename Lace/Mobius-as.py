@@ -160,8 +160,8 @@ def main(args=None):
         parser.add_argument("-forceTrans","-ft",help="Force blocks where annotated transcripts start and end",action='store_true')
         parser.add_argument("-AnnoTrans","-a",help="Flattened SuperTranscript annotation file",default="")
         parser.add_argument("-readThresh","-reads",help="The minimum number of reads in all combined samples required to support a splice junction (default=5)",default=5)
-	parser.add_argument("flat_ann",help="Annotation to consider")
-	parser.add_argument("outputfileName",help="output file name")
+        parser.add_argument("flat_ann",help="Annotation to consider")
+        parser.add_argument("outputfileName",help="output file name")
         args= parser.parse_args()
 
         print('Constructing Dynamic Blocks- AS')
@@ -170,4 +170,4 @@ def main(args=None):
 
 
 if __name__ == '__main__':
-	main()
+        main()
