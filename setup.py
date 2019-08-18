@@ -10,7 +10,7 @@ setup(name='Lace',
                         'matplotlib'],
       entry_points={
           'console_scripts': [
-              'BuildSuperScript=Lace.BuildSuperScript:main',
+              'BuildSuperTranscript=Lace.BuildSuperTranscript:main',
               'Lace_Checker=Lace.Checker:main',
               'Lace=Lace.Lace:main',
               'Mobius-as=Lace.Mobius_as:main',
