@@ -1,3 +1,4 @@
+#!/usr/bin/env python
 #Author: Anthony Hawkins
 #A little script to construct an annotation from an SJ.out.tab file, a standard STAR output. 
 # This creates the dynamic block annotation
@@ -140,8 +141,7 @@ def Mobius(sjfile,gfile,ft,ann_trans,read_thresh,flat_ann,outputfileName):
                 gtf.write(ann)
 
 
-if __name__ == '__main__':
-
+def main(args=None):
 	#ASCII art
         print(" ___ ___   ___   ____   ____  __ __  _____")
         print("|   |   | /   \ |    \ |    ||  |  |/  __/")
@@ -160,10 +160,14 @@ if __name__ == '__main__':
         parser.add_argument("-forceTrans","-ft",help="Force blocks where annotated transcripts start and end",action='store_true')
         parser.add_argument("-AnnoTrans","-a",help="Flattened SuperTranscript annotation file",default="")
         parser.add_argument("-readThresh","-reads",help="The minimum number of reads in all combined samples required to support a splice junction (default=5)",default=5)
-	parser.add_argument("flat_ann",help="Annotation to consider")
-	parser.add_argument("outputfileName",help="output file name")
+        parser.add_argument("flat_ann",help="Annotation to consider")
+        parser.add_argument("outputfileName",help="output file name")
         args= parser.parse_args()
 
         print('Constructing Dynamic Blocks- AS')
         Mobius(args.SpliceJunctions,args.GenomeFasta,args.forceTrans,args.AnnoTrans,args.readThresh,args.flat_ann,args.outputfileName)
         print('Done')
+
+
+if __name__ == '__main__':
+        main()

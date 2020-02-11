@@ -20,7 +20,7 @@ import pickle
 import time
 from matplotlib.backends.backend_pdf import PdfPages
 from itertools import repeat
-from BuildSuperTranscript import get_annotation_line
+from Lace.BuildSuperTranscript import get_annotation_line
 
 ################################################################
 ###### Visualise blocks and metricise in SuperTranscript #######
@@ -244,7 +244,8 @@ def FindMetrics(metric_input):
 		
 	return(mapping, fraction, anno, compact, ntran)
 
-if __name__=='__main__':
+
+def main(args=None):
 	#Make argument parser
 	parser = argparse.ArgumentParser()
 
@@ -255,3 +256,6 @@ if __name__=='__main__':
 	parser.add_argument("--SuperDir",help="Subdirectory where the .psl and .fasta files for each cluster can be found",default="SuperFiles",type=str)
 	args= parser.parse_args()
 	Checker(args.SuperFasta,args.SuperGff,args.cores,args.SuperDir)
+
+if __name__=='__main__':
+	main()

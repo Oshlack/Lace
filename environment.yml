@@ -1,10 +1,11 @@
 name: lace
 channels:
-- bioconda
+  - conda-forge
+  - bioconda
 dependencies:
-- python=3*
-- pandas
-- networkx=2.3*
-- numpy
-- matplotlib
-- blat
+  - python=3*
+  - pandas
+  - networkx
+  - numpy
+  - matplotlib
+  - blat

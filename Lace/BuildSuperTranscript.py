@@ -1,3 +1,4 @@
+#!/usr/bin/env python
 # Author: Anthony Hawkins
 
 #A script to construct a SuperTranscript given a .fasta file of transcript sequence
@@ -553,13 +554,10 @@ def BuildGraph(fname,transcripts,verbose=True,max_edges=100):
 
     return(seq,anno,whirl_status)
 
-if __name__ == '__main__':
+def main(args=None):
     ''' Takes one fasta file which contains all transcripts in cluster (gene) and builds a super transcript from it, outputing the sequence'''
-
     if(len(sys.argv) != 2):
-        print('Function takes one fasta file as input')
-        exit
-
+        sys.exit('Function takes one fasta file as input')
     else:
         fname = sys.argv[1]
         seq,anno,whirl_status,transcript_status = SuperTran(fname,verbose=True)
@@ -569,4 +567,6 @@ if __name__ == '__main__':
         print(whirl_status)
         print(transcript_status)
 
-    
+
+if __name__ == '__main__':
+    main()
