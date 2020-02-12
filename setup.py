@@ -12,7 +12,7 @@ setup(name='Lace',
           'console_scripts': [
               'BuildSuperTranscript=Lace.BuildSuperTranscript:main',
               'Lace_Checker=Lace.Checker:main',
-              'Lace=Lace.Lace:main',
+              'Lace=Lace.Lace_run:main',
               'Mobius-as=Lace.Mobius_as:main',
               'Mobius=Lace.Mobius:main',
               'STViewer=Lace.STViewer:main'
